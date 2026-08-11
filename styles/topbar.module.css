@@ -1,0 +1,180 @@
+.header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 100;
+  backdrop-filter: blur(18px) saturate(140%);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.headerContainer {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoOrb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--gold));
+  box-shadow: 0 0 16px rgba(94, 234, 212, 0.42);
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.navLink {
+  position: relative;
+  padding: 6px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.navLink::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  height: 2px;
+  background: var(--gold);
+  transition: var(--transition);
+}
+
+.navLink:hover {
+  color: var(--text-primary);
+}
+
+.navLink:hover::after {
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.themeToggle {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  transition: var(--transition);
+}
+
+.themeToggle:hover {
+  transform: translateY(-1px);
+  border-color: rgba(247, 201, 72, 0.3);
+  color: var(--gold);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+.burger {
+  display: none;
+  width: 26px;
+  height: 18px;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.burger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 20px;
+  background: var(--text-primary);
+  transition: var(--transition);
+}
+
+@media (max-width: 860px) {
+  .burger {
+    display: flex;
+  }
+
+  .nav {
+    position: fixed;
+    top: 82px;
+    right: 0;
+    left: 0;
+    flex-direction: column;
+    gap: 20px;
+    padding: 28px 24px;
+    background: var(--surface-strong);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(18px);
+    transform: translateY(-140%);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.35s ease;
+  }
+
+  .navOpen {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .burgerActive span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+
+  .burgerActive span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .burgerActive span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+}
+/* تنظیمات پایه برای حالت دارک (همان چیزی که الان دارید) */
+.topbar {
+  background: rgba(8, 29, 42, 0.7);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* اعمال استایل شیشه‌ای برای حالت لایت */
+:global(body.light-mode) .topbar {
+  /* یک رنگ سفید نیمه‌شفاف با ته‌رنگ آبی یخی */
+  background: rgba(248, 250, 252, 0.75);
+  /* حاشیه پایین برای تفکیک هدر از محتوا در حالت روشن */
+  border-bottom: 1px solid rgba(15, 52, 67, 0.1);
+  /* افکت مات‌کننده شیشه‌ای */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+ 

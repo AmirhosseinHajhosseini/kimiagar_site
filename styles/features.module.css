@@ -1,0 +1,229 @@
+.sectionPadding {
+  padding: 100px 0;
+}
+
+.bgAlt {
+  background: var(--section-alt-dark);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+:global(body.light-mode) .bgAlt {
+  background: var(--section-alt);
+}
+
+
+
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.subTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.mainTitle {
+  font-size: clamp(26px, 4vw, 38px);
+  font-weight: 900;
+  margin-bottom: 16px;
+}
+
+.sectionDesc {
+  max-width: 640px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+/* --- استایل ابزارها --- */
+.toolsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+}
+
+.toolCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  transition: transform var(--transition), border-color var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  backdrop-filter: blur(14px);
+  position: relative;
+  overflow: hidden;
+}
+
+.toolCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--cyan), transparent);
+  opacity: 0;
+  transition: var(--transition);
+}
+
+.toolCard:hover {
+  transform: translateY(-6px);
+  border-color: rgba(94, 234, 212, 0.4);
+}
+
+.toolCard:hover::before {
+  opacity: 1;
+}
+
+.toolIconBg {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: rgba(94, 234, 212, 0.08);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.toolBadge {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--cyan);
+  background: rgba(94, 234, 212, 0.06);
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+
+.toolTitle {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.toolDesc {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+
+.toolLink {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--cyan);
+  transition: var(--transition);
+}
+
+.toolLink svg {
+  transition: transform var(--transition);
+}
+
+.toolLink:hover {
+  color: var(--gold);
+}
+
+.toolLink:hover svg {
+  transform: translateX(-4px); /* جهت RTL */
+}
+
+/* --- استایل مقالات --- */
+.articlesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 30px;
+}
+
+@media (max-width: 500px) {
+  .articlesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.articleCard {
+  background: #0b202b;
+  border: 1px solid rgba(132, 226, 220, 0.2);
+  border-radius: 16px;
+  padding: 32px;
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  backdrop-filter: none;
+}
+
+/* حالت دارک: رنگ کارت در حالت عادی و Hover تقریباً ثابت بماند */
+.articleCard:hover {
+  background: #0b202b;
+  border-color: rgba(132, 226, 220, 0.38);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+  transform: translateY(-3px);
+}
+
+:global(body.light-mode) .articleCard {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(120, 170, 180, 0.22);
+  box-shadow: 0 6px 20px rgba(30, 80, 95, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+:global(body.light-mode) .articleCard:hover {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(45, 180, 180, 0.4);
+  box-shadow: 0 12px 28px rgba(30, 80, 95, 0.14);
+}
+
+
+.articleTag {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+  margin-bottom: 16px;
+  display: inline-block;
+}
+
+.articleTitle {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.articleExcerpt {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+
+.articleMeta {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.articleAuthor {
+  font-weight: 700;
+}
