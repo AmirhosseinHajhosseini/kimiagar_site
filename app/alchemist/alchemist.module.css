@@ -1,0 +1,281 @@
+/* ==========================================================================
+   Alchemist Hub Page Styles - راز زکریا
+   ========================================================================== */
+
+.wrapper {
+  min-height: 100vh;
+  padding-top: 130px; /* ایجاد فاصله مناسب جهت قرارگیری زیر هدر اصلی (Topbar) */
+  padding-bottom: 80px;
+  background: radial-gradient(circle at top center, #081d2a 0%, #05111a 100%);
+  direction: rtl;
+  transition: background 0.3s ease;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Page Header & Back Button
+   -------------------------------------------------------------------------- */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 3.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: right;
+}
+
+.headerContent {
+  flex: 1;
+}
+
+.title {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  color: #ffffff;
+  margin-bottom: 0.8rem;
+  font-weight: 800;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.5px;
+}
+
+.description {
+  color: #94a3b8;
+  font-size: 1.05rem;
+  max-width: 650px;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.backHomeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.7rem 1.4rem;
+  border-radius: 12px;
+  border: 1px solid rgba(72, 201, 176, 0.3);
+  background: rgba(72, 201, 176, 0.08);
+  color: #48c9b0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.backHomeBtn:hover {
+  background: #48c9b0;
+  color: #05111a;
+  border-color: #48c9b0;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(72, 201, 176, 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   Tools Grid & Cards
+   -------------------------------------------------------------------------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 2rem;
+}
+
+.card {
+  background: rgba(13, 31, 45, 0.6);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 2.5rem 2rem;
+  border-radius: 24px;
+  text-decoration: none;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: right;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(72, 201, 176, 0.12), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  background: rgba(16, 38, 55, 0.85);
+  border-color: rgba(72, 201, 176, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.icon {
+  font-size: 3rem;
+  margin-bottom: 1.2rem;
+  filter: drop-shadow(0 0 12px rgba(72, 201, 176, 0.25));
+  z-index: 1;
+}
+
+.card h3 {
+  color: #ffffff;
+  margin-bottom: 0.8rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  z-index: 1;
+}
+
+.card p {
+  color: #cbd5e0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  z-index: 1;
+  flex-grow: 1; /* باعث تراز شدن دکمه‌ها در پایین کارت می‌شود */
+}
+
+.startBtn {
+  margin-top: 1.8rem;
+  color: #48c9b0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  z-index: 1;
+  transition: gap 0.2s ease;
+}
+
+.card:hover .startBtn {
+  gap: 12px;
+}
+
+.soonTag {
+  margin-top: 1.8rem;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 16px;
+  border-radius: 50px;
+  color: #718096;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+.disabled:hover {
+  transform: none;
+  background: rgba(13, 31, 45, 0.6);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+   Light Mode Overrides
+   -------------------------------------------------------------------------- */
+:global(.light-mode) .wrapper,
+:global([data-theme="light"]) .wrapper {
+  background: radial-gradient(circle at top center, #f0f4f8 0%, #d9e2ec 100%);
+}
+
+:global(.light-mode) .pageHeader,
+:global([data-theme="light"]) .pageHeader {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+:global(.light-mode) .title,
+:global([data-theme="light"]) .title {
+  color: #1a202c;
+  text-shadow: none;
+}
+
+:global(.light-mode) .description,
+:global([data-theme="light"]) .description {
+  color: #4a5568;
+}
+
+:global(.light-mode) .card,
+:global([data-theme="light"]) .card {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+}
+
+:global(.light-mode) .card:hover,
+:global([data-theme="light"]) .card:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(72, 201, 176, 0.6);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+
+:global(.light-mode) .card h3,
+:global([data-theme="light"]) .card h3 {
+  color: #1a202c;
+}
+
+:global(.light-mode) .card p,
+:global([data-theme="light"]) .card p {
+  color: #4a5568;
+}
+
+:global(.light-mode) .backHomeBtn,
+:global([data-theme="light"]) .backHomeBtn {
+  background: rgba(72, 201, 176, 0.12);
+  color: #2c7a7b;
+  border-color: rgba(72, 201, 176, 0.4);
+}
+
+:global(.light-mode) .backHomeBtn:hover,
+:global([data-theme="light"]) .backHomeBtn:hover {
+  background: #2c7a7b;
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Layout (Mobile & Tablet)
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .wrapper {
+    padding-top: 100px;
+  }
+
+  .pageHeader {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 1.2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .backHomeBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .card {
+    padding: 2rem 1.5rem;
+  }
+}

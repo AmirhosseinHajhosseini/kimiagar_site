@@ -227,3 +227,37 @@
 .articleAuthor {
   font-weight: 700;
 }
+.moreToolsCard {
+  border: 1px dashed rgba(72, 201, 176, 0.4) !important;
+  background: rgba(72, 201, 176, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.moreToolsCard:hover {
+  background: rgba(72, 201, 176, 0.08);
+  border-style: solid !important;
+  border-color: #48c9b0 !important;
+}
+
+.moreToolsIcon {
+  width: 56px;
+  height: 56px;
+  background: rgba(72, 201, 176, 0.1);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #48c9b0;
+  margin-bottom: 1.5rem;
+}
+
+.moreToolsCard:hover .toolLink {
+  color: #48c9b0;
+}

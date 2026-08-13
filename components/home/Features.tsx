@@ -1,5 +1,7 @@
 import styles from "../../styles/features.module.css";
 
+import Link from "next/link";
+
 export default function Features() {
   const tools = [
     {
@@ -68,6 +70,22 @@ export default function Features() {
                 </a>
               </div>
             ))}
+
+            {/* کارت جدید: ورود به کیمیاگر */}
+            <Link href="/alchemist" className={`${styles.toolCard} ${styles.moreToolsCard}`}>
+              <div className={styles.moreToolsIcon}>＋</div>
+              <h3 className={styles.toolTitle}>موارد بیشتر</h3>
+              <p className={styles.toolDesc}>
+                مشاهده و دسترسی به ویترین کامل تمامی ابزارهای محاسباتی و نرم‌افزارهای علمی راز زکریا.
+              </p>
+              <div className={styles.toolLink}>
+                ورود به کیمیاگر
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+              </div>
+            </Link>
           </div>
         </div>
       </section>
