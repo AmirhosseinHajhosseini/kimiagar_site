@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 
+import Topbar from "../components/layout/Topbar";
+import Footer from "../components/layout/Footer";
+
 const vazirmatn = Vazirmatn({
   subsets: ["arabic"],
-  variable: "--font-vazirmatn",
+  weight: ["400", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -19,7 +23,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
-      <body className={vazirmatn.variable}>{children}</body>
+      {/* استفاده از className به جای variable برای اعمال مستقیم فونت */}
+      <body className={vazirmatn.className}>
+        <Topbar />
+        <main>{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }

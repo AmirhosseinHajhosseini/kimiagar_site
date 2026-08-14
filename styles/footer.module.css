@@ -151,3 +151,28 @@
     right: 0;
   }
 }
+.moreArticlesCard {
+  border: 2px dashed rgba(72, 201, 176, 0.3) !important;
+  background: rgba(72, 201, 176, 0.05) !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.3s ease, border-color 0.3s ease !important;
+}
+
+.moreArticlesCard:hover {
+  transform: translateY(-5px);
+  border-color: #48c9b0 !important;
+  background: rgba(72, 201, 176, 0.1) !important;
+}
+
+.readBtn {
+  margin-top: 15px;
+  color: #48c9b0;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+

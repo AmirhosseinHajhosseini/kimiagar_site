@@ -9,7 +9,7 @@ export default function Home() {
     <>
       <Topbar />
 
-      <main className={homeStyles.page}>
+      <main id="home" className={homeStyles.page}>
         <section className={heroStyles.heroSection}>
           <div className={heroStyles.heroGrid}>
             <div className={heroStyles.heroContent}>
@@ -57,10 +57,11 @@ export default function Home() {
 
         <section id="features">
           <Features />
+
         </section>
       </main>
 
-      <Footer />
+      
     </>
   );
 }

@@ -1,11 +1,12 @@
 .heroSection {
+  position: relative;
   padding-top: 140px;
+  padding-bottom: 60px;
   min-height: 90vh;
   display: flex;
   align-items: center;
-  /* ── اضافه شد ── */
   width: 100%;
-  padding-inline: 24px;   /* فاصله از دو طرف در موبایل */
+  padding-inline: 24px;
 }
 
 .heroGrid {
@@ -13,13 +14,12 @@
   grid-template-columns: 1.1fr 0.9fr;
   gap: 60px;
   align-items: center;
-  /* ── اضافه شد ── */
   width: 100%;
-  max-width: 1200px;      /* حداکثر عرض استاندارد */
-  margin-inline: auto;    /* وسط‌چین در RTL */
+  max-width: 1200px;
+  margin-inline: auto;
 }
 
-
+/* ═══════════ محتوای متنی ═══════════ */
 .heroContent {
   display: flex;
   flex-direction: column;
@@ -70,7 +70,6 @@
   margin-bottom: 36px;
 }
 
-/* ── دکمه‌ها (افزوده شد) ── */
 .ctaGroup {
   display: flex;
   gap: 16px;
@@ -128,7 +127,6 @@
   transform: translateY(-1px) scale(0.98);
 }
 
-/* ── آمار ── */
 .stats {
   display: flex;
   gap: 40px;
@@ -151,7 +149,7 @@
   color: var(--text-muted);
 }
 
-/* ── ساختار اتم سه بعدی ── */
+/* ═══════════ اتم سه‌بعدی (بازنویسی اساسی) ═══════════ */
 .heroVisual {
   display: grid;
   place-items: center;
@@ -160,6 +158,7 @@
 }
 
 .scene {
+  position: relative;
   width: 300px;
   height: 300px;
   transform-style: preserve-3d;
@@ -170,19 +169,22 @@
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
-  animation: rotateAtom 20s linear infinite;
+  animation: rotateAtom 24s linear infinite;
 }
 
 .nucleus {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   background: radial-gradient(circle at 30% 30%, var(--gold-light), var(--gold));
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 0 40px rgba(247, 201, 72, 0.6);
+  box-shadow:
+    0 0 40px rgba(247, 201, 72, 0.6),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 10;
 }
 
 .orbit {
@@ -191,49 +193,62 @@
   left: 0;
   width: 100%;
   height: 100%;
-  border: 1.5px solid rgba(94, 234, 212, 0.25);
+  border: 1.5px solid rgba(94, 234, 212, 0.3);
   border-radius: 50%;
   transform-style: preserve-3d;
+  pointer-events: none;
 }
 
-.orbitOne { transform: rotateX(75deg) rotateY(15deg); }
-.orbitTwo { transform: rotateX(75deg) rotateY(-45deg); }
+.orbitOne   { transform: rotateX(75deg) rotateY(15deg); }
+.orbitTwo   { transform: rotateX(75deg) rotateY(-45deg); }
 .orbitThree { transform: rotateX(20deg) rotateY(75deg); }
 
+/* ★ کلید حل مشکل: الکترون در مرکز اتم است و با
+   rotate() + translateY(-radius) دور هسته می‌چرخد */
 .electron {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 50%;
   width: 10px;
   height: 10px;
+  margin: -5px 0 0 -5px; /* دقیقاً مرکز اتم */
   background: var(--cyan);
   border-radius: 50%;
   box-shadow: 0 0 15px var(--cyan);
-  transform: translate(-50%, -50%);
-  animation: rotateElectron 4s linear infinite;
+  animation: orbitElectron 4s linear infinite;
 }
 
-.orbitTwo .electron { animation-delay: -1.3s; background: var(--gold); }
-.orbitThree .electron { animation-delay: -2.6s; background: #fff; }
+/* تأخیر و رنگ متفاوت برای هر مدار */
+.orbitTwo .electron {
+  animation-delay: -1.3s;
+  background: var(--gold);
+  box-shadow: 0 0 15px var(--gold);
+}
+.orbitThree .electron {
+  animation-delay: -2.6s;
+  background: #ffffff;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.9);
+}
 
-/* ── انیمیشن‌ها ── */
+/* گام‌های ثابت چرخش اتم (برای جلوگیری از پرش) */
+@keyframes rotateAtom {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(360deg); }
+}
+
+/* الکترون واقعاً روی مدار حرکت می‌کند */
+@keyframes orbitElectron {
+  from { transform: rotate(0deg)    translateY(-150px); }
+  to   { transform: rotate(360deg)  translateY(-150px); }
+}
+
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(94, 234, 212, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(94, 234, 212, 0); }
   100% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0); }
 }
 
-@keyframes rotateAtom {
-  from { transform: rotateY(0); }
-  to { transform: rotateY(360deg); }
-}
-
-@keyframes rotateElectron {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-/* ── ریسپانسیو ── */
+/* ═══════════ ریسپانسیو ═══════════ */
 @media (max-width: 900px) {
   .heroGrid {
     grid-template-columns: 1fr;
@@ -245,33 +260,41 @@
   .ctaGroup { justify-content: center; }
   .stats { justify-content: center; }
   .heroVisual { height: 350px; }
+
+  /* مقیاس کوچک‌تر صحنه برای موبایل */
+  .scene {
+    width: 220px;
+    height: 220px;
+    transform: scale(0.85);
+  }
+  .electron { animation: orbitElectronMobile 4s linear infinite; }
+  .orbitTwo .electron { animation-delay: -1.3s; }
+  .orbitThree .electron { animation-delay: -2.6s; }
 }
 
-/* ── اصلاحات حالت روشن (Light Mode) ── */
+/* ── اصلاحات حالت روشن ── */
 :global(body.light-mode) .orbit {
   border: 1.5px solid rgba(15, 52, 67, 0.3);
 }
-
 :global(body.light-mode) .electron {
   box-shadow: 0 0 10px rgba(15, 52, 67, 0.4);
 }
-
+:global(body.light-mode) .orbitTwo .electron {
+  background: #b8860b;
+  box-shadow: 0 0 10px rgba(184, 134, 11, 0.4);
+}
 :global(body.light-mode) .orbitThree .electron {
   background: #0f3443;
 }
-
 :global(body.light-mode) .nucleus {
   box-shadow: 0 0 30px rgba(184, 134, 11, 0.3);
 }
-
-/* دکمه‌ها در حالت روشن */
 :global(body.light-mode) .secondaryBtn {
   color: #0f3443;
   background: rgba(15, 52, 67, 0.05);
   border: 1px solid rgba(15, 52, 67, 0.15);
   box-shadow: 0 6px 18px rgba(15, 52, 67, 0.08);
 }
-
 :global(body.light-mode) .secondaryBtn:hover {
   background: rgba(15, 52, 67, 0.1);
   border-color: rgba(15, 52, 67, 0.25);

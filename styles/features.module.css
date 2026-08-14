@@ -261,3 +261,25 @@
 .moreToolsCard:hover .toolLink {
   color: #48c9b0;
 }
+.moreArticlesCard {
+  border: 2px dashed rgba(72, 201, 176, 0.3) !important;
+  background: rgba(72, 201, 176, 0.03) !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease !important;
+}
+
+.moreArticlesCard:hover {
+  background: rgba(72, 201, 176, 0.08) !important;
+  border-color: rgba(72, 201, 176, 0.6) !important;
+}
+.articlesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); /* ۳ تا در ردیف اول، کارت آرشیو در ردیف دوم */
+  gap: 25px;
+  margin-top: 40px;
+}
