@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
 import PeriodicTable from "@/components/periodic-table/PeriodicTable";
 
-export const metadata: Metadata = {
-  title: "جدول تناوبی عناصر",
-  description: "جدول تناوبی تعاملی عناصر شیمیایی",
+
+export const metadata = {
+  title: "جدول تناوبی | راز زکریا",
+  description: "جدول تناوبی عناصر شیمی با نام فارسی"
 };
 
 export default function PeriodicTablePage() {

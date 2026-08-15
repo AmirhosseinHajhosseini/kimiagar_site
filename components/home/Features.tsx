@@ -68,14 +68,6 @@ export default function Features({
       {!onlyArticles && (
         <section id={onlyTools ? "alchemist-tools" : "kimiyagar"} className={`section ${styles.sectionPadding}`}>
           <div className="container">
-            <div className={styles.sectionHeader}>
-              <span className={styles.subTitle}>نرم‌افزار آنلاین</span>
-              <h2 className={styles.mainTitle}>کیمیاگر: ابزارهای محاسباتی شیمی</h2>
-              <p className={styles.sectionDesc}>
-                مجموعه‌ای از ابزارهای تحت وب برای ساده‌سازی محاسبات پیچیده شیمی فیزیک، تجزیه و ترسیم مکانیسم‌ها.
-              </p>
-            </div>
-
             <div className={styles.toolsGrid}>
               {tools.map((tool, idx) => (
                 <div key={idx} className={styles.toolCard}>
