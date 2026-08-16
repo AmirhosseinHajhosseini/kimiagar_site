@@ -1,32 +1,40 @@
 ﻿"use client";
 
-import React, { useState, useMemo } from "react";
-import { elementsList } from "@/data/elements";
+import React, { useMemo, useState } from "react";
+import { elements } from "@/data/elements";
 import styles from "./periodic-table.module.css";
 
 type ElementKind = "metal" | "nonmetal" | "metalloid";
 type FilterState = Record<ElementKind, boolean>;
+type TrendType =
+  | "none"
+  | "atomicRadius"
+  | "electronegativity"
+  | "ionizationEnergy";
+type ActiveTrend = Exclude<TrendType, "none">;
 
-// تابع دقیق برای دسته‌بندی ۱۱۸ عنصر بر اساس لیست کاربر
+const trendLabels: Record<TrendType, string> = {
+  none: "بدون روند",
+  atomicRadius: "شعاع اتمی",
+  electronegativity: "الکترونگاتیوی",
+  ionizationEnergy: "انرژی یونش",
+};
+
+const trendRgb: Record<ActiveTrend, [number, number, number]> = {
+  atomicRadius: [59, 130, 246],
+  electronegativity: [34, 197, 94],
+  ionizationEnergy: [249, 115, 22],
+};
+
 function getElementKind(atomicNumber: number): ElementKind {
-  // ۱. شبه‌فلزات (Metalloids) - طبق لیست ۷ عنصر اصلی
-  const metalloids = [5, 14, 32, 33, 51, 52, 84]; // B, Si, Ge, As, Sb, Te, Po
+  const metalloids = [5, 14, 32, 33, 51, 52, 84];
   if (metalloids.includes(atomicNumber)) return "metalloid";
 
-  // ۲. نافلزات (Nonmetals)
-  // هیدروژن + گروه کربن، نیتروژن، اکسیژن، هالوژن‌ها و گازهای نجیب
   const nonmetals = [
-    1, // H
-    6, // C
-    7, 15, // N, P
-    8, 16, 34, // O, S, Se
-    9, 17, 35, 53, 85, // F, Cl, Br, I, At
-    2, 10, 18, 36, 54, 86, 118 // He, Ne, Ar, Kr, Xe, Rn, Og
+    1, 2, 6, 7, 8, 9, 10, 15, 16, 17, 18, 34, 35, 36, 53, 54, 85, 86, 118,
   ];
   if (nonmetals.includes(atomicNumber)) return "nonmetal";
 
-  // ۳. فلزات (Metals)
-  // بقیه عناصر (گروه ۱ و ۲، فلزات واسطه، لانتانیدها، اکتینیدها و فلزات اصلی)
   return "metal";
 }
 
@@ -39,95 +47,208 @@ function getKindLabel(kind: ElementKind) {
   return labels[kind];
 }
 
+function isLanthanide(atomicNumber: number) {
+  return atomicNumber >= 58 && atomicNumber <= 71;
+}
+
+function isActinide(atomicNumber: number) {
+  return atomicNumber >= 90 && atomicNumber <= 103;
+}
+
 export default function PeriodicTable() {
-  const [selectedElement, setSelectedElement] = useState<any | null>(null);
+  const [selectedElement, setSelectedElement] = useState<
+    (typeof elements)[number] | null
+  >(null);
   const [temp, setTemp] = useState(25);
+  const [activeTrend, setActiveTrend] = useState<TrendType>("none");
   const [filters, setFilters] = useState<FilterState>({
     metal: true,
     nonmetal: true,
     metalloid: true,
   });
 
-  const getPhase = (element: any) => {
-    if (element.meltingPointC === undefined || element.boilingPointC === undefined) {
-      return { label: "نامشخص", className: styles.unknown };
+  const trendMap = useMemo(() => {
+    if (activeTrend === "none") return new Map<number, number>();
+
+    const valid = elements
+      .map((el) => el[activeTrend])
+      .filter((value): value is number => Number.isFinite(value) && value > 0);
+
+    const min = valid.length ? Math.min(...valid) : 0;
+    const max = valid.length ? Math.max(...valid) : 1;
+
+    const map = new Map<number, number>();
+    if (max === min) return map;
+
+    for (const el of elements) {
+      const value = el[activeTrend];
+      if (Number.isFinite(value) && value > 0) {
+        map.set(el.atomicNumber, (value - min) / (max - min));
+      }
     }
-    if (temp < element.meltingPointC) return { label: "جامد", className: styles.solid };
-    if (temp < element.boilingPointC) return { label: "مایع", className: styles.liquid };
-    return { label: "گاز", className: styles.gas };
+
+    return map;
+  }, [activeTrend]);
+
+  const getPhase = (element: (typeof elements)[number]) => {
+    if (element.meltingPointC == null || element.boilingPointC == null) {
+      return { label: "نامشخص", className: styles.phaseUnknown };
+    }
+    if (temp < element.meltingPointC) {
+      return { label: "جامد", className: styles.phaseSolid };
+    }
+    if (temp < element.boilingPointC) {
+      return { label: "مایع", className: styles.phaseLiquid };
+    }
+    return { label: "گاز", className: styles.phaseGas };
   };
 
   const toggleFilter = (kind: ElementKind) => {
-    setFilters(prev => ({ ...prev, [kind]: !prev[kind] }));
+    setFilters((prev) => ({ ...prev, [kind]: !prev[kind] }));
   };
+
+  const getTrendGradient = (): React.CSSProperties | undefined => {
+    if (activeTrend === "none") return undefined;
+    const [r, g, b] = trendRgb[activeTrend];
+    return {
+      background: `linear-gradient(to left, rgba(${r}, ${g}, ${b}, 0.1), rgb(${r}, ${g}, ${b}))`,
+    };
+  };
+
+  const mainElements = elements.filter(
+    (el) => !isLanthanide(el.atomicNumber) && !isActinide(el.atomicNumber)
+  );
+
+  const lanthanides = elements.filter((el) => isLanthanide(el.atomicNumber));
+  const actinides = elements.filter((el) => isActinide(el.atomicNumber));
+
+ const renderElement = (el: (typeof elements)[number], index?: number) => {
+  const kind = getElementKind(el.atomicNumber);
+  const isVisible = filters[kind];
+  const isSelected = selectedElement?.atomicNumber === el.atomicNumber;
+  const normalized = trendMap.get(el.atomicNumber);
+  const trendValue = activeTrend !== "none" ? el[activeTrend] : null;
+
+  // تشخیص اینکه آیا عنصر در ردیف‌های پایین (f-block) است یا جدول اصلی
+  const isFBlock = isLanthanide(el.atomicNumber) || isActinide(el.atomicNumber);
+
+  let trendStyle: React.CSSProperties | undefined;
+  if (activeTrend !== "none" && normalized != null) {
+    const [r, g, b] = trendRgb[activeTrend];
+    trendStyle = {
+      background: `rgba(${r}, ${g}, ${b}, ${(0.1 + normalized * 0.5).toFixed(2)})`,
+      borderColor: `rgb(${r}, ${g}, ${b})`,
+    };
+  }
+
+  return (
+    <button
+      key={el.atomicNumber || index}
+      type="button"
+      className={`${styles.elementCell} ${styles[kind]} ${
+        !isVisible ? styles.dimmed : ""
+      } ${isSelected ? styles.selected : ""} ${
+        activeTrend !== "none" ? styles.hasTrend : ""
+      }`}
+      style={{
+        // اگر f-block بود، اجازه بده ترتیب طبیعی (flex/grid) چیدمان را تعیین کند
+        // اگر در جدول اصلی بود، از مختصات گروه و دوره استفاده کن
+        gridColumn: isFBlock ? "auto" : (el.groupId || undefined),
+        gridRow: isFBlock ? "auto" : (el.periodId || undefined),
+        ...trendStyle,
+      }}
+      onClick={() => setSelectedElement(el)}
+    >
+      <span className={styles.number}>{el.atomicNumber}</span>
+      <span className={styles.symbol}>{el.symbol}</span>
+      <span className={styles.name}>{el.persianName}</span>
+
+      {activeTrend !== "none" && (
+        <span className={styles.trendValueDisplay}>
+          {trendValue ?? "—"}
+        </span>
+      )}
+    </button>
+  );
+};
+
 
   return (
     <main className={styles.container} dir="rtl">
       <header className={styles.titleSection}>
-        <h1 className={styles.title}>جدول تناوبی</h1>
+        <h1 className={styles.title}>جدول تناوبی عناصر</h1>
         <p className={styles.subtitle}>
-          تفکیک تخصصی عناصر به فلزات، نافلزات و شبه‌فلزات بر اساس خواص فیزیکی و شیمیایی
+          تحلیل تخصصی خواص فیزیکی، روندهای تناوبی و تغییرات فاز در دماهای مختلف
         </p>
       </header>
 
-      {/* بخش فیلترها */}
-      <section className={styles.filterBar} aria-label="فیلتر دسته‌بندی عناصر">
-        {(["metal", "nonmetal", "metalloid"] as ElementKind[]).map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            className={`${styles.filterButton} ${styles[`filter-${kind}`]} ${
-              filters[kind] ? styles.filterActive : styles.filterInactive
-            }`}
-            onClick={() => toggleFilter(kind)}
-          >
-            <span className={styles.filterDot} />
-            <span>{getKindLabel(kind)}</span>
-            <span className={styles.filterStatus}>
-              {filters[kind] ? "روشن" : "خاموش"}
-            </span>
-          </button>
-        ))}
-      </section>
+      <section className={styles.topControls}>
+        <div className={styles.filterBar} aria-label="فیلتر دسته‌بندی عناصر">
+          {(["metal", "nonmetal", "metalloid"] as ElementKind[]).map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              className={`${styles.filterButton} ${styles[`filter-${kind}`]} ${
+                filters[kind] ? styles.filterActive : styles.filterInactive
+              }`}
+              onClick={() => toggleFilter(kind)}
+            >
+              <span className={styles.filterDot} />
+              <span>{getKindLabel(kind)}</span>
+            </button>
+          ))}
+        </div>
 
-      {/* گرید جدول */}
-      <section className={styles.tableWrapper} dir="ltr">
-        <div className={styles.grid}>
-          {elementsList.map((el, index) => {
-            const kind = getElementKind(el.atomicNumber);
-            const isVisible = filters[kind];
-            const isSelected = selectedElement?.atomicNumber === el.atomicNumber;
+        <div className={styles.trendSelector}>
+          <span className={styles.trendLabel}>نمایش روند:</span>
 
-            return (
+          <div className={styles.trendButtons}>
+            {(Object.keys(trendLabels) as TrendType[]).map((key) => (
               <button
-                key={el.atomicNumber || index}
+                key={key}
                 type="button"
-                className={`
-                  ${styles.elementCell} 
-                  ${styles[kind]} 
-                  ${!isVisible ? styles.dimmed : ""} 
-                  ${isSelected ? styles.selected : ""}
-                `}
-                style={{
-                  gridColumn: el.groupId,
-                  gridRow: el.periodId,
-                }}
-                onClick={() => setSelectedElement(el)}
+                className={`${styles.trendTab} ${
+                  activeTrend === key ? styles.trendTabActive : ""
+                }`}
+                onClick={() => setActiveTrend(key)}
               >
-                <span className={styles.number}>{el.atomicNumber}</span>
-                <span className={styles.symbol}>{el.symbol}</span>
-                <span className={styles.name}>{el.persianName}</span>
+                {trendLabels[key]}
               </button>
-            );
-          })}
+            ))}
+          </div>
+
+          {activeTrend !== "none" && (
+            <div className={styles.trendLegend}>
+              <span>کم</span>
+              <div className={styles.trendGradient} style={getTrendGradient()} />
+              <span>زیاد</span>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* پنل جزئیات (نمایش در پایین جدول) */}
+      <section className={styles.tableWrapper} dir="ltr">
+        <div className={styles.grid}>
+          {mainElements.map((el, index) => renderElement(el, index))}
+        </div>
+
+        <div className={styles.fBlockContainer}>
+          <div className={styles.fBlockRow}>
+            <div className={styles.fBlockLabel}>لانتانیدها</div>
+            {lanthanides.map((el, index) => renderElement(el, index))}
+          </div>
+
+          <div className={styles.fBlockRow}>
+            <div className={styles.fBlockLabel}>اکتینیدها</div>
+            {actinides.map((el, index) => renderElement(el, index))}
+          </div>
+        </div>
+      </section>
+
       <section className={styles.detailsCard}>
         {!selectedElement ? (
           <div className={styles.placeholder}>
-            برای مشاهده جزئیات علمی و بررسی حالت فیزیکی، یک عنصر را انتخاب کنید.
+            برای مشاهده جزئیات علمی، بررسی روندها و تغییرات حالت فیزیکی، یک عنصر را انتخاب کنید.
           </div>
         ) : (
           <div className={styles[getElementKind(selectedElement.atomicNumber)]}>
@@ -143,32 +264,40 @@ export default function PeriodicTable() {
             </div>
 
             <div className={styles.detailsContent}>
-              {/* کنترل دما */}
               <div className={styles.controlCard}>
-                <h3 className={styles.cardTitle}>بررسی حالت فیزیکی</h3>
-                <div className={styles.tempValue} dir="ltr">{temp} °C</div>
-                <input
-                  type="range"
-                  min="-273"
-                  max="4000"
-                  step="1"
-                  value={temp}
-                  onChange={(e) => setTemp(Number(e.target.value))}
-                  className={styles.rangeInput}
-                />
-                <div className={styles.tempScale} dir="ltr">
-                  <span>-273°C</span>
-                  <span>4000°C</span>
+                <h3 className={styles.cardTitle}>شبیه‌ساز فاز فیزیکی</h3>
+                <div className={styles.tempValue} dir="ltr">
+                  {temp} °C
                 </div>
+
+                <div className={styles.sliderContainer}>
+                  <input
+                    type="range"
+                    min="-273"
+                    max="4000"
+                    step="1"
+                    value={temp}
+                    onChange={(e) => setTemp(Number(e.target.value))}
+                    className={styles.rangeInput}
+                  />
+                  <div className={styles.tempScale}>
+                    <span>-273°C</span>
+                    <span>4000°C</span>
+                  </div>
+                </div>
+
                 <div className={styles.currentPhase}>
                   <span>حالت در این دما:</span>
-                  <span className={`${styles.phaseTag} ${getPhase(selectedElement).className}`}>
+                  <span
+                    className={`${styles.phaseTag} ${
+                      getPhase(selectedElement).className
+                    }`}
+                  >
                     {getPhase(selectedElement).label}
                   </span>
                 </div>
               </div>
 
-              {/* جدول اطلاعات */}
               <div className={styles.detailsGrid}>
                 <div className={styles.detailItem}>
                   <span>عدد اتمی:</span>
@@ -179,16 +308,23 @@ export default function PeriodicTable() {
                   <strong>{selectedElement.atomicMass}</strong>
                 </div>
                 <div className={styles.detailItem}>
-                  <span>دوره / گروه:</span>
-                  <strong>{selectedElement.periodId} / {selectedElement.groupId}</strong>
+                  <span>شعاع اتمی:</span>
+                  <strong>{selectedElement.atomicRadius ?? "—"} pm</strong>
                 </div>
                 <div className={styles.detailItem}>
-                  <span>نقطه ذوب:</span>
-                  <strong dir="ltr">{selectedElement.meltingPointC ?? "—"} °C</strong>
+                  <span>الکترونگاتیوی:</span>
+                  <strong>{selectedElement.electronegativity ?? "—"}</strong>
                 </div>
                 <div className={styles.detailItem}>
-                  <span>نقطه جوش:</span>
-                  <strong dir="ltr">{selectedElement.boilingPointC ?? "—"} °C</strong>
+                  <span>انرژی یونش:</span>
+                  <strong>{selectedElement.ionizationEnergy ?? "—"} kJ/mol</strong>
+                </div>
+                <div className={styles.detailItem}>
+                  <span>نقطه ذوب / جوش:</span>
+                  <strong dir="ltr">
+                    {selectedElement.meltingPointC ?? "—"} /{" "}
+                    {selectedElement.boilingPointC ?? "—"} °C
+                  </strong>
                 </div>
                 <div className={styles.detailItemWide}>
                   <span>آرایش الکترونی:</span>

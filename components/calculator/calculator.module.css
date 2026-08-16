@@ -1,0 +1,1056 @@
+﻿/* =========================================================
+   PHYSICOCHEMICAL CALCULATOR - LUXE EDITION v2.0
+   Modern Glassmorphism + Fluid Animations
+   (FIX: light buttons black + dark symbols black, no hover)
+   ========================================================= */
+
+.wrap {
+  --primary-pink: #ff85a2;
+  --primary-pink-light: #ffb3c6;
+  --primary-pink-dark: #e85d7f;
+  --primary-blue: #4a90e2;
+  --primary-blue-light: #7eb3f0;
+  --primary-blue-dark: #2c6cb0;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --text-main: #2d3436;
+  --text-secondary: #636e72;
+  --shadow-luxe: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-soft: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  direction: rtl;
+  font-family: 'Vazirmatn', 'IRANSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  line-height: 1.7;
+  color: var(--text-main);
+  position: relative;
+}
+
+/* ============ پس‌زمینه تزئینی متحرک ============ */
+.wrap::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 133, 162, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(74, 144, 226, 0.06) 0%, transparent 50%);
+  animation: bgFloat 30s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes bgFloat {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(30px, -50px) rotate(2deg); }
+  66% { transform: translate(-20px, 30px) rotate(-1deg); }
+}
+
+/* ============ هدر لوکس با افکت شیشه‌ای ============ */
+.hero {
+  background: linear-gradient(135deg,
+    rgba(227, 253, 245, 0.85) 0%,
+    rgba(255, 230, 250, 0.85) 50%,
+    rgba(230, 240, 255, 0.85) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  padding: 4rem 2.5rem;
+  text-align: center;
+  margin-bottom: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    var(--shadow-luxe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255, 133, 162, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(74, 144, 226, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
+  animation: heroGlow 8s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes heroGlow {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: -50%;
+  width: 200%;
+  height: 300%;
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 60%
+  );
+  animation: shine 6s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+.heroTitle {
+  font-size: 3.5rem;
+  font-weight: 900;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg,
+    #ff758c 0%,
+    #ff7eb3 30%,
+    #ff85a2 60%,
+    #ff9a8b 100%);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1.2rem;
+  filter: drop-shadow(0 4px 8px rgba(255, 117, 140, 0.3));
+  animation: gradientShift 5s ease-in-out infinite;
+  position: relative;
+  display: inline-block;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.heroSubtitle {
+  color: #1a1a2e;
+  font-size: 1.15rem;
+  max-width: 650px;
+  margin: 0 auto;
+  line-height: 1.8;
+  position: relative;
+}
+
+/* ============ کارت ورودی با افکت شیشه‌ای ============ */
+.inputCard {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  padding: 3rem 2.5rem;
+  box-shadow:
+    var(--shadow-luxe),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  margin-bottom: 2.5rem;
+  transition: all 0.4s var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+}
+
+.inputCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg,
+    var(--primary-pink) 0%,
+    var(--primary-blue) 50%,
+    var(--primary-pink) 100%);
+  background-size: 200% 100%;
+  animation: borderFlow 3s linear infinite;
+}
+
+@keyframes borderFlow {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+.inputCard:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 30px 60px -15px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  font-weight: bold;
+  font-size: 1.25rem;
+  color: var(--primary-blue);
+  position: relative;
+}
+
+.labelRow::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg,
+    rgba(74, 144, 226, 0.3) 0%,
+    transparent 100%);
+  border-radius: 1px;
+}
+
+.inputRow {
+  display: flex;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.input {
+  flex: 1;
+  padding: 1.3rem 1.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  font-size: 1.5rem;
+  direction: ltr;
+  text-align: center;
+  transition: all 0.4s var(--transition-smooth);
+  background: #f8fafc;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.5px;
+  color: #1a1a2e;
+  position: relative;
+}
+
+.input:hover {
+  border-color: var(--primary-pink-light);
+  background: #fff;
+  transform: translateY(-1px);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary-pink);
+  background: #fff;
+  box-shadow:
+    0 0 0 5px rgba(255, 133, 162, 0.15),
+    0 10px 25px -5px rgba(255, 133, 162, 0.2);
+  transform: translateY(-2px);
+}
+
+.input::placeholder {
+  color: #cbd5e1;
+  font-size: 1rem;
+  letter-spacing: normal;
+}
+
+/* ============ دکمه محاسبه — لایت: پس‌زمینه سیاه، متن سفید ============ */
+.calcBtn {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  padding: 0 3rem;
+  border-radius: var(--radius-md);
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.4s var(--transition-bounce);
+  font-size: 1.15rem;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+.calcBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+  transition: left 0.6s var(--transition-smooth);
+}
+
+/* ============ ترکیب عنصری با کارت‌های پویا ============ */
+.compositionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.compCard {
+  background: white;
+  padding: 1.75rem 1.5rem;
+  border-radius: 22px;
+  text-align: center;
+  border: 1px solid #f0f0f0;
+  transition: all 0.4s var(--transition-bounce);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+
+.compCard::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 133, 162, 0.08) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.4s var(--transition-smooth);
+}
+
+.compSymbol {
+  font-size: 2.2rem;
+  font-weight: 900;
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--primary-pink);
+  transition: all 0.3s var(--transition-bounce);
+  position: relative;
+  z-index: 1;
+}
+
+/* ============ نوار درصد عنصر ============ */
+.compPct {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  display: block;
+  margin-bottom: 0.75rem;
+  position: relative;
+  z-index: 1;
+}
+
+.compCount {
+  display: block;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2d3436;
+  position: relative;
+  z-index: 1;
+}
+
+.compBar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #eef2f7;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.compBarFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary-pink), var(--primary-blue));
+  box-shadow: 0 0 12px rgba(255, 133, 162, 0.5);
+  transition: width 0.8s var(--transition-smooth);
+  width: 0;
+  animation: barGrow 1s var(--transition-smooth) forwards;
+}
+
+@keyframes barGrow {
+  from { width: 0; }
+}
+
+/* ============ کارت‌های آماری ============ */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.stat {
+  background: white;
+  padding: 1.5rem 1.25rem;
+  border-radius: 20px;
+  text-align: center;
+  border: 1px solid #f1f5f9;
+  transition: all 0.35s var(--transition-bounce);
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+
+.stat::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-pink), var(--primary-blue));
+  border-radius: 2px;
+  transition: width 0.4s var(--transition-smooth);
+}
+
+.statLabel {
+  display: block;
+  font-size: 0.85rem;
+  color: #2d3436;
+  margin-bottom: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.statValue {
+  font-weight: 800;
+  color: #000000;
+  font-size: 1.15rem;
+  transition: color 0.3s;
+}
+
+/* ============ انیمیشن ورود عناصر ============ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero {
+  animation: fadeInUp 0.8s var(--transition-smooth) both;
+}
+
+.inputCard {
+  animation: fadeInUp 0.8s var(--transition-smooth) 0.2s both;
+}
+
+.statsGrid {
+  animation: fadeInUp 0.8s var(--transition-smooth) 0.4s both;
+}
+
+.compositionGrid {
+  animation: fadeInUp 0.8s var(--transition-smooth) 0.6s both;
+}
+
+/* ============ پیام خطا ============ */
+.error {
+  margin-top: 1.25rem;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 99, 132, 0.1);
+  border: 1px solid rgba(255, 99, 132, 0.4);
+  border-right: 4px solid #ff6384;
+  border-radius: var(--radius-sm);
+  color: #d6336c;
+  font-weight: 600;
+  animation: fadeInUp 0.4s var(--transition-smooth) both;
+}
+
+/* ============ دکمه‌های از پیش تعیین‌شده — لایت: سیاه ============ */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  justify-content: center;
+}
+
+.preset {
+  padding: 0.6rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid #000000;
+  background: #000000;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-bounce);
+  direction: ltr;
+  font-family: 'Courier New', monospace;
+}
+
+.presetActive {
+  background: #000000;
+  color: #ffffff;
+  border-color: var(--primary-pink);
+  box-shadow: 0 0 0 2px var(--primary-pink) inset;
+}
+
+/* ============ تب‌ها — لایت: سیاه ============ */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0.5rem;
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.tab {
+  padding: 0.7rem 2rem;
+  border: 1px solid #000000;
+  border-radius: 999px;
+  background: #000000;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-bounce);
+}
+
+.tabActive {
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px var(--primary-pink) inset;
+}
+
+/* ============ عنوان و کپی ============ */
+.composition {
+  margin-top: 1rem;
+}
+
+.compTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-bottom: 1.25rem;
+}
+
+.copyBtn {
+  display: block;
+  margin: 2.5rem auto 0;
+  padding: 1rem 2.5rem;
+  border-radius: 999px;
+  border: 2px solid #000000;
+  background: #000000;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-bounce);
+}
+
+/* ============ مبدل واحد ============ */
+.converter {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  box-shadow: var(--shadow-luxe);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: fadeInUp 0.8s var(--transition-smooth) both;
+}
+
+.converterTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.converterRow {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.converterInput {
+  width: 220px;
+  padding: 1rem 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  font-size: 1.2rem;
+  direction: ltr;
+  text-align: center;
+  background: #f8fafc;
+  color: #1a1a2e;
+  transition: all 0.4s var(--transition-smooth);
+}
+
+.converterInput:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 5px rgba(74, 144, 226, 0.15);
+}
+
+.converterSelect {
+  padding: 1rem 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  background: #f8fafc;
+  color: #2d3436;
+  cursor: pointer;
+  transition: all 0.4s var(--transition-smooth);
+}
+
+.converterSelect:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+}
+
+.converterResults {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.25rem;
+}
+
+.converterResult {
+  background: white;
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+  text-align: center;
+  border: 1px solid #f1f5f9;
+  box-shadow: var(--shadow-soft);
+}
+
+.converterResult span {
+  display: block;
+  color: #2d3436;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.converterResult strong {
+  color: var(--primary-blue);
+  font-size: 1.1rem;
+  direction: ltr;
+}
+
+/* ============ تاریخچه (مرتب‌سازی‌شده) ============ */
+.history {
+  margin-top: 2.5rem;
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.5rem;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.historyTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1a1a2e;
+}
+
+.historyClear {
+  padding: 0.5rem 1.5rem;
+  border-radius: 999px;
+  border: 1px solid #000000;
+  background: #000000;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-bounce);
+}
+
+.historyList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.historyItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid #eef2f7;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s var(--transition-bounce);
+}
+
+.historyFormula {
+  direction: ltr;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--primary-pink-dark);
+  font-size: 1.1rem;
+  flex: 1;
+  text-align: left;
+}
+
+.historyMass {
+  color: #2d3436;
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* ============ هاور سه‌بعدی (سبز-نفتی-آبی) ============ */
+.compCard:hover,
+.stat:hover,
+.historyItem:hover,
+.converterResult:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(52, 211, 153, 0.4),
+    0 0 30px rgba(52, 211, 153, 0.2);
+  border-color: rgba(52, 211, 153, 0.6);
+}
+
+.compCard:hover .compSymbol {
+  color: #10b981;
+  transform: scale(1.15);
+  filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.4));
+}
+
+.stat:hover .statValue {
+  color: #10b981;
+}
+
+.historyItem:hover .historyFormula {
+  color: #10b981;
+}
+
+.preset:hover,
+.tab:hover,
+.calcBtn:hover,
+.copyBtn:hover,
+.historyClear:hover {
+  background: linear-gradient(135deg, #10b981 0%, #0d9488 50%, #4a90e2 100%);
+  color: #ffffff;
+  border-color: transparent;
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 15px 35px rgba(16, 185, 129, 0.4),
+    0 5px 15px rgba(74, 144, 226, 0.3);
+}
+
+.input:hover,
+.converterInput:hover,
+.converterSelect:hover {
+  border-color: #10b981;
+  box-shadow: 
+    0 0 0 4px rgba(16, 185, 129, 0.15),
+    0 10px 25px -5px rgba(16, 185, 129, 0.3);
+}
+
+/* ============ حالت دارک — نمادها و متن‌ها خوانا ============ */
+@media (prefers-color-scheme: dark) {
+  .wrap {
+    color: #f8fafc;
+  }
+
+  .hero {
+    background: linear-gradient(135deg,
+      rgba(26, 26, 46, 0.9) 0%,
+      rgba(22, 33, 62, 0.9) 50%,
+      rgba(30, 20, 40, 0.9) 100%);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 25px 50px -12px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .heroSubtitle {
+    color: #e2e8f0;
+  }
+
+  .inputCard, .stat, .compCard, .converter, .history {
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(51, 65, 85, 0.6);
+    color: #f8fafc;
+  }
+
+  .statLabel {
+    color: #cbd5e1;
+  }
+
+  .statValue {
+    color: #ffffff;
+  }
+
+  /* FIX: نماد عناصر در دارک — سفید (قبلاً سیاه بود و دیده نمی‌شد) */
+  .compSymbol {
+    color: #ffffff;
+  }
+
+  /* FIX: متن‌های درصد/تعداد در دارک — سفید خوانا */
+  .compPct {
+    color: #ffffff;
+  }
+
+  .compCount {
+    color: #cbd5e1;
+  }
+
+  .compBar {
+    background: #334155;
+  }
+
+  .compTitle {
+    color: #f8fafc;
+  }
+
+  .labelRow {
+    color: var(--primary-blue-light);
+  }
+
+  .input {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: #334155;
+    color: white;
+  }
+
+  .input:focus {
+    background: rgba(15, 23, 42, 1);
+    border-color: var(--primary-pink);
+    box-shadow:
+      0 0 0 5px rgba(255, 133, 162, 0.2),
+      0 10px 25px -5px rgba(255, 133, 162, 0.3);
+  }
+
+  .preset {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: #334155;
+    color: #cbd5e1;
+  }
+
+  .tabs {
+    background: rgba(30, 41, 59, 0.6);
+  }
+
+  .tab {
+    color: #cbd5e1;
+  }
+
+  .converterTitle, .historyTitle {
+    color: #f8fafc;
+  }
+
+  .converterInput, .converterSelect {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: #334155;
+    color: #f8fafc;
+  }
+
+  .converterResult {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: #334155;
+  }
+
+  .converterResult span {
+    color: #cbd5e1;
+  }
+
+  .converterResult strong {
+    color: var(--primary-blue-light);
+  }
+
+  .historyItem {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: #334155;
+  }
+
+  .historyFormula {
+    color: var(--primary-pink-light);
+  }
+
+  .historyMass {
+    color: #cbd5e1;
+  }
+
+  .historyClear {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: #334155;
+  }
+}
+
+/* ============ ریسپانسیو موبایل ============ */
+@media (max-width: 768px) {
+  .wrap {
+    padding: 0 1rem;
+    margin: 1rem auto;
+  }
+
+  .hero {
+    padding: 2.5rem 1.5rem;
+    border-radius: 22px;
+  }
+
+  .heroTitle {
+    font-size: 2.2rem;
+    letter-spacing: -0.5px;
+  }
+
+  .heroSubtitle {
+    font-size: 1rem;
+  }
+
+  .inputCard {
+    padding: 2rem 1.5rem;
+    border-radius: 22px;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .compositionGrid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+  }
+
+  .inputRow {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .calcBtn {
+    padding: 1.2rem;
+    width: 100%;
+    font-size: 1.1rem;
+  }
+
+  .input {
+    padding: 1.1rem;
+    font-size: 1.3rem;
+  }
+
+  .compCard {
+    padding: 1.25rem 1rem;
+  }
+
+  .compSymbol {
+    font-size: 1.8rem;
+  }
+
+  .stat {
+    padding: 1.1rem 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 1.8rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .compositionGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .inputCard {
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* ============ پشتیبانی از کاهش حرکت ============ */
+@media (prefers-reduced-motion: reduce) {
+  .wrap *,
+  .wrap *::before,
+  .wrap *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============ پشتیبانی از مرورگرهای قدیمی ============ */
+@supports not (backdrop-filter: blur(20px)) {
+  .hero,
+  .inputCard {
+    background: rgba(255, 255, 255, 0.95);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .hero,
+    .inputCard {
+      background: rgba(30, 41, 59, 0.95);
+    }
+  }
+}
+
+/* ============ اسکرول‌بار سفارشی ============ */
+.wrap *::-webkit-scrollbar {
+  width: 8px;
+}
+
+.wrap *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wrap *::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--primary-pink-light), var(--primary-blue-light));
+  border-radius: 4px;
+}
+
+/* ============ افکت فوکوس کیبورد برای دسترس‌پذیری ============ */
+.calcBtn:focus-visible,
+.input:focus-visible {
+  outline: 3px solid var(--primary-pink);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(255, 133, 162, 0.25);
+}
+
+/* ============ حالت انتخاب متن ============ */
+.heroTitle::selection,
+.compSymbol::selection,
+.statValue::selection {
+  background: rgba(255, 133, 162, 0.3);
+  color: inherit;
+}

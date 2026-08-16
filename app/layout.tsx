@@ -7,8 +7,9 @@ import Footer from "../components/layout/Footer";
 
 const vazirmatn = Vazirmatn({
   subsets: ["arabic"],
-  weight: ["400", "700"],
+  weight: ["400", "500", "700", "800", "900"],
   display: "swap",
+  variable: "--font-vazir",
 });
 
 export const metadata: Metadata = {
@@ -22,8 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" suppressHydrationWarning>
-      {/* استفاده از className به جای variable برای اعمال مستقیم فونت */}
+    <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
       <body className={vazirmatn.className}>
         <Topbar />
         <main>{children}</main>
