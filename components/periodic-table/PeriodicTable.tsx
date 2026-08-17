@@ -67,32 +67,28 @@ export default function PeriodicTable() {
     metalloid: true,
   });
 
- const trendMap = useMemo(() => {
-  if (activeTrend === "none") return new Map<number, number>();
+  const trendMap = useMemo(() => {
+    if (activeTrend === "none") return new Map<number, number>();
 
-  const valid = elements
-    .map((el) => el[activeTrend])
-    .filter(
-      (value): value is number =>
-        typeof value === "number" && Number.isFinite(value) && value > 0
-    );
+    const valid = elements
+      .map((el) => el[activeTrend])
+      .filter(
+        (value): value is number =>
+          typeof value === "number" && Number.isFinite(value) && value > 0
+      );
 
-  const min = valid.length ? Math.min(...valid) : 0;
-  const max = valid.length ? Math.max(...valid) : 1;
+    const min = valid.length ? Math.min(...valid) : 0;
+    const max = valid.length ? Math.max(...valid) : 1;
 
-  const map = new Map<number, number>();
-  if (max === min) return map;
+    const map = new Map<number, number>();
+    if (max === min) return map;
 
-  for (const el of elements) {
-    const value = el[activeTrend];
-    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-      map.set(el.atomicNumber, (value - min) / (max - min));
+    for (const el of elements) {
+      const value = el[activeTrend];
+      if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+        map.set(el.atomicNumber, (value - min) / (max - min));
+      }
     }
-  }
-
-  return map;
-}, [activeTrend]);
-
 
     return map;
   }, [activeTrend]);
@@ -129,56 +125,55 @@ export default function PeriodicTable() {
   const lanthanides = elements.filter((el) => isLanthanide(el.atomicNumber));
   const actinides = elements.filter((el) => isActinide(el.atomicNumber));
 
- const renderElement = (el: (typeof elements)[number], index?: number) => {
-  const kind = getElementKind(el.atomicNumber);
-  const isVisible = filters[kind];
-  const isSelected = selectedElement?.atomicNumber === el.atomicNumber;
-  const normalized = trendMap.get(el.atomicNumber);
-  const trendValue = activeTrend !== "none" ? el[activeTrend] : null;
+  const renderElement = (el: (typeof elements)[number], index?: number) => {
+    const kind = getElementKind(el.atomicNumber);
+    const isVisible = filters[kind];
+    const isSelected = selectedElement?.atomicNumber === el.atomicNumber;
+    const normalized = trendMap.get(el.atomicNumber);
+    const trendValue = activeTrend !== "none" ? el[activeTrend] : null;
 
-  // تشخیص اینکه آیا عنصر در ردیف‌های پایین (f-block) است یا جدول اصلی
-  const isFBlock = isLanthanide(el.atomicNumber) || isActinide(el.atomicNumber);
+    // تشخیص اینکه آیا عنصر در ردیف‌های پایین (f-block) است یا جدول اصلی
+    const isFBlock = isLanthanide(el.atomicNumber) || isActinide(el.atomicNumber);
 
-  let trendStyle: React.CSSProperties | undefined;
-  if (activeTrend !== "none" && normalized != null) {
-    const [r, g, b] = trendRgb[activeTrend];
-    trendStyle = {
-      background: `rgba(${r}, ${g}, ${b}, ${(0.1 + normalized * 0.5).toFixed(2)})`,
-      borderColor: `rgb(${r}, ${g}, ${b})`,
-    };
-  }
+    let trendStyle: React.CSSProperties | undefined;
+    if (activeTrend !== "none" && normalized != null) {
+      const [r, g, b] = trendRgb[activeTrend];
+      trendStyle = {
+        background: `rgba(${r}, ${g}, ${b}, ${(0.1 + normalized * 0.5).toFixed(2)})`,
+        borderColor: `rgb(${r}, ${g}, ${b})`,
+      };
+    }
 
-  return (
-    <button
-      key={el.atomicNumber || index}
-      type="button"
-      className={`${styles.elementCell} ${styles[kind]} ${
-        !isVisible ? styles.dimmed : ""
-      } ${isSelected ? styles.selected : ""} ${
-        activeTrend !== "none" ? styles.hasTrend : ""
-      }`}
-      style={{
-        // اگر f-block بود، اجازه بده ترتیب طبیعی (flex/grid) چیدمان را تعیین کند
-        // اگر در جدول اصلی بود، از مختصات گروه و دوره استفاده کن
-        gridColumn: isFBlock ? "auto" : (el.groupId || undefined),
-        gridRow: isFBlock ? "auto" : (el.periodId || undefined),
-        ...trendStyle,
-      }}
-      onClick={() => setSelectedElement(el)}
-    >
-      <span className={styles.number}>{el.atomicNumber}</span>
-      <span className={styles.symbol}>{el.symbol}</span>
-      <span className={styles.name}>{el.persianName}</span>
+    return (
+      <button
+        key={el.atomicNumber || index}
+        type="button"
+        className={`${styles.elementCell} ${styles[kind]} ${
+          !isVisible ? styles.dimmed : ""
+        } ${isSelected ? styles.selected : ""} ${
+          activeTrend !== "none" ? styles.hasTrend : ""
+        }`}
+        style={{
+          // اگر f-block بود، اجازه بده ترتیب طبیعی (flex/grid) چیدمان را تعیین کند
+          // اگر در جدول اصلی بود، از مختصات گروه و دوره استفاده کن
+          gridColumn: isFBlock ? "auto" : (el.groupId || undefined),
+          gridRow: isFBlock ? "auto" : (el.periodId || undefined),
+          ...trendStyle,
+        }}
+        onClick={() => setSelectedElement(el)}
+      >
+        <span className={styles.number}>{el.atomicNumber}</span>
+        <span className={styles.symbol}>{el.symbol}</span>
+        <span className={styles.name}>{el.persianName}</span>
 
-      {activeTrend !== "none" && (
-        <span className={styles.trendValueDisplay}>
-          {trendValue ?? "—"}
-        </span>
-      )}
-    </button>
-  );
-};
-
+        {activeTrend !== "none" && (
+          <span className={styles.trendValueDisplay}>
+            {trendValue ?? "—"}
+          </span>
+        )}
+      </button>
+    );
+  };
 
   return (
     <main className={styles.container} dir="rtl">
