@@ -67,25 +67,32 @@ export default function PeriodicTable() {
     metalloid: true,
   });
 
-  const trendMap = useMemo(() => {
-    if (activeTrend === "none") return new Map<number, number>();
+ const trendMap = useMemo(() => {
+  if (activeTrend === "none") return new Map<number, number>();
 
-    const valid = elements
-      .map((el) => el[activeTrend])
-      .filter((value): value is number => Number.isFinite(value) && value > 0);
+  const valid = elements
+    .map((el) => el[activeTrend])
+    .filter(
+      (value): value is number =>
+        typeof value === "number" && Number.isFinite(value) && value > 0
+    );
 
-    const min = valid.length ? Math.min(...valid) : 0;
-    const max = valid.length ? Math.max(...valid) : 1;
+  const min = valid.length ? Math.min(...valid) : 0;
+  const max = valid.length ? Math.max(...valid) : 1;
 
-    const map = new Map<number, number>();
-    if (max === min) return map;
+  const map = new Map<number, number>();
+  if (max === min) return map;
 
-    for (const el of elements) {
-      const value = el[activeTrend];
-      if (Number.isFinite(value) && value > 0) {
-        map.set(el.atomicNumber, (value - min) / (max - min));
-      }
+  for (const el of elements) {
+    const value = el[activeTrend];
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+      map.set(el.atomicNumber, (value - min) / (max - min));
     }
+  }
+
+  return map;
+}, [activeTrend]);
+
 
     return map;
   }, [activeTrend]);
