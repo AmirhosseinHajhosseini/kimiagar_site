@@ -1,0 +1,198 @@
+.container {
+  min-height: 100vh;
+  padding: 24px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+  color: #0f172a;
+}
+
+.header {
+  max-width: 1200px;
+  margin: 0 auto 24px;
+  text-align: right;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0;
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 220px 1fr 260px;
+  gap: 20px;
+  align-items: start;
+}
+
+.toolbar,
+.outputPanel,
+.canvasSection {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #dbe4f0;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.toolbar,
+.outputPanel {
+  padding: 18px;
+}
+
+.canvasSection {
+  padding: 18px;
+}
+
+.panelTitle {
+  margin: 0 0 16px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.toolGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toolButton,
+.actionButton {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: #e2e8f0;
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.toolButton:hover,
+.actionButton:hover {
+  background: #1a1a2e;
+  color: #ffffff;
+}
+
+.canvasHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.canvasActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.canvasArea {
+  min-height: 520px;
+  border-radius: 18px;
+  border: 2px dashed #cbd5e1;
+  background:
+    linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.canvasPlaceholder {
+  color: #64748b;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.outputBox {
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 14px;
+  margin-bottom: 16px;
+  line-height: 1.9;
+  color: #334155;
+}
+
+.outputActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .canvasArea {
+    min-height: 420px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .container {
+    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+    color: #f8fafc;
+  }
+
+  .title {
+    color: #f8fafc;
+  }
+
+  .subtitle {
+    color: #cbd5e1;
+  }
+
+  .toolbar,
+  .outputPanel,
+  .canvasSection {
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid #334155;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  }
+
+  .panelTitle {
+    color: #f8fafc;
+  }
+
+  .toolButton,
+  .actionButton {
+    background: #1e293b;
+    color: #ffffff;
+  }
+
+  .toolButton:hover,
+  .actionButton:hover {
+    background: #2563eb;
+    color: #ffffff;
+  }
+
+  .canvasArea {
+    border-color: #475569;
+  }
+
+  .canvasPlaceholder {
+    color: #cbd5e1;
+  }
+
+  .outputBox {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+  }
+}
