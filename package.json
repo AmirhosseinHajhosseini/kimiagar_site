@@ -10,6 +10,7 @@
     "generate:elements": "tsx scripts/generate-elements.ts"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.20",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@react-three/postprocessing": "^3.0.5",
@@ -17,7 +18,9 @@
     "clsx": "^2.1.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^13.1.0",
+    "immer": "^11.1.17",
     "jspdf": "^4.2.1",
+    "lodash": "^4.18.1",
     "lucide-react": "^1.31.0",
     "nanoid": "^6.0.1",
     "next": "16.3.0",
