@@ -30,6 +30,7 @@ import type {
   ThemeState,
 } from "./types";
 
+import { useDocumentHistory } from "./useDocumentHistory";
 import { getElementData } from "./chemistry/atomData";
 import { getTheme } from "./theme";
 import MoleculeToolbar from "./MoleculeToolbar";
@@ -166,7 +167,9 @@ const getBondLines = (
   const normalY = dx / length;
   const offset = 5;
 
-  const createLine = (distance: number): BondLine => ({
+  const createLine = (
+    distance: number,
+  ): BondLine => ({
     x1: start.x + normalX * distance,
     y1: start.y + normalY * distance,
     x2: end.x + normalX * distance,
@@ -242,22 +245,25 @@ const getHashedWedgeLines = (
 
   const maxWidth = 14;
 
-  return Array.from({ length: count }, (_, index) => {
-    const progress = (index + 1) / count;
+  return Array.from(
+    { length: count },
+    (_, index) => {
+      const progress = (index + 1) / count;
 
-    const centerX = start.x + dx * progress;
-    const centerY = start.y + dy * progress;
+      const centerX = start.x + dx * progress;
+      const centerY = start.y + dy * progress;
 
-    const halfWidth =
-      (maxWidth * progress) / 2;
+      const halfWidth =
+        (maxWidth * progress) / 2;
 
-    return {
-      x1: centerX - normalX * halfWidth,
-      y1: centerY - normalY * halfWidth,
-      x2: centerX + normalX * halfWidth,
-      y2: centerY + normalY * halfWidth,
-    };
-  });
+      return {
+        x1: centerX - normalX * halfWidth,
+        y1: centerY - normalY * halfWidth,
+        x2: centerX + normalX * halfWidth,
+        y2: centerY + normalY * halfWidth,
+      };
+    },
+  );
 };
 
 const getWavyPoints = (
@@ -275,6 +281,7 @@ const getWavyPoints = (
   const normalX = -dy / length;
   const normalY = dx / length;
   const amplitude = 5;
+
   const segments = Math.max(
     6,
     Math.floor(length / 12),
@@ -284,7 +291,6 @@ const getWavyPoints = (
     { length: segments + 1 },
     (_, index) => {
       const progress = index / segments;
-
       const direction =
         index % 2 === 0 ? 1 : -1;
 
@@ -373,12 +379,25 @@ const loadDocument = (): MechanismDocument => {
 };
 
 export default function MoleculeDrawer() {
-  const [document, setDocument] =
-    useState<MechanismDocument>(
-      createInitialDocument,
-    );
+  const initialDocument = useMemo(
+    () => createInitialDocument(),
+    [],
+  );
+
+  const {
+    document,
+    updateDocument: updateHistoryDocument,
+    undo,
+    redo,
+    resetHistory,
+    canUndo,
+    canRedo,
+  } = useDocumentHistory<MechanismDocument>(
+    initialDocument,
+  );
 
   const [isReady, setIsReady] = useState(false);
+
   const [bondSelection, setBondSelection] =
     useState<string[]>([]);
 
@@ -391,9 +410,11 @@ export default function MoleculeDrawer() {
   );
 
   useEffect(() => {
-    setDocument(loadDocument());
+    const savedDocument = loadDocument();
+
+    resetHistory(savedDocument);
     setIsReady(true);
-  }, []);
+  }, [resetHistory]);
 
   useEffect(() => {
     if (
@@ -415,13 +436,29 @@ export default function MoleculeDrawer() {
         currentDocument: MechanismDocument,
       ) => MechanismDocument,
     ) => {
-      setDocument((currentDocument) => ({
-        ...updater(currentDocument),
-        updatedAt: new Date().toISOString(),
-      }));
+      updateHistoryDocument((currentDocument) => {
+        const nextDocument = updater(
+          currentDocument,
+        );
+
+        return {
+          ...nextDocument,
+          updatedAt: new Date().toISOString(),
+        };
+      });
     },
-    [],
+    [updateHistoryDocument],
   );
+
+  const handleUndo = useCallback(() => {
+    undo();
+    setBondSelection([]);
+  }, [undo]);
+
+  const handleRedo = useCallback(() => {
+    redo();
+    setBondSelection([]);
+  }, [redo]);
 
   const setInteractionMode = useCallback(
     (mode: InteractionMode) => {
@@ -601,15 +638,15 @@ export default function MoleculeDrawer() {
                 (
                   (
                     object.startAtomId ===
-                    startAtomId &&
+                      startAtomId &&
                     object.endAtomId ===
-                    endAtomId
+                      endAtomId
                   ) ||
                   (
                     object.startAtomId ===
-                    endAtomId &&
+                      endAtomId &&
                     object.endAtomId ===
-                    startAtomId
+                      startAtomId
                   )
                 ),
             );
@@ -731,9 +768,6 @@ export default function MoleculeDrawer() {
     ],
   );
 
-  const handleUndo = useCallback(() => {}, []);
-  const handleRedo = useCallback(() => {}, []);
-
   const selectBond = useCallback(
     (
       event: ReactMouseEvent<SVGGElement>,
@@ -794,8 +828,7 @@ export default function MoleculeDrawer() {
     ? document.objects.find(
         (object): object is Atom =>
           object.type === "atom" &&
-          object.id ===
-            selectedBond.endAtomId,
+          object.id === selectedBond.endAtomId,
       )
     : null;
 
@@ -840,13 +873,11 @@ export default function MoleculeDrawer() {
 
   const renderedBonds = bonds.map((bond) => {
     const atomA = atoms.find(
-      (atom) =>
-        atom.id === bond.startAtomId,
+      (atom) => atom.id === bond.startAtomId,
     );
 
     const atomB = atoms.find(
-      (atom) =>
-        atom.id === bond.endAtomId,
+      (atom) => atom.id === bond.endAtomId,
     );
 
     if (!atomA || !atomB) {
@@ -1058,6 +1089,44 @@ export default function MoleculeDrawer() {
     );
   });
 
+  useEffect(() => {
+    const handleKeyDown = (
+      event: KeyboardEvent,
+    ) => {
+      if (!(event.ctrlKey || event.metaKey)) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
+      if (key === "z" && !event.shiftKey) {
+        event.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      if (
+        key === "y" ||
+        (key === "z" && event.shiftKey)
+      ) {
+        event.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown,
+      );
+    };
+  }, [handleUndo, handleRedo]);
+
   return (
     <main
       className={`${styles.application} ${
@@ -1108,6 +1177,8 @@ export default function MoleculeDrawer() {
       <MoleculeToolbar
         activeMode={document.tool.mode}
         showGrid={document.viewport.showGrid}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onModeChange={setInteractionMode}
         onToggleGrid={toggleGrid}
         onUndo={handleUndo}
@@ -1116,15 +1187,14 @@ export default function MoleculeDrawer() {
 
       <section className={styles.workspace}>
         <MoleculeSidebar
-  document={document}
-  onModeChange={setInteractionMode}
-  onElementChange={setSelectedElement}
-  onBondChange={setSelectedBond}
-  onToggleGrid={toggleGrid}
-  onToggleSnap={toggleSnapToGrid}
-  onClearSelection={clearSelection}
-/>
-
+          document={document}
+          onModeChange={setInteractionMode}
+          onElementChange={setSelectedElement}
+          onBondChange={setSelectedBond}
+          onToggleGrid={toggleGrid}
+          onToggleSnap={toggleSnapToGrid}
+          onClearSelection={clearSelection}
+        />
 
         <section
           className={styles.canvasArea}
@@ -1303,6 +1373,7 @@ export default function MoleculeDrawer() {
 
               <div className={styles.propertyRow}>
                 <span>نوع پیوند</span>
+
                 <strong>
                   {getBondTypeLabel(
                     selectedBond.bondType,
@@ -1312,6 +1383,7 @@ export default function MoleculeDrawer() {
 
               <div className={styles.propertyRow}>
                 <span>مرتبه پیوند</span>
+
                 <strong>
                   {selectedBond.order}
                 </strong>
@@ -1319,6 +1391,7 @@ export default function MoleculeDrawer() {
 
               <div className={styles.propertyRow}>
                 <span>اتم اول</span>
+
                 <strong>
                   {selectedStartAtom?.element ?? "-"}
                 </strong>
@@ -1326,6 +1399,7 @@ export default function MoleculeDrawer() {
 
               <div className={styles.propertyRow}>
                 <span>اتم دوم</span>
+
                 <strong>
                   {selectedEndAtom?.element ?? "-"}
                 </strong>
@@ -1366,6 +1440,7 @@ export default function MoleculeDrawer() {
 
       <footer className={styles.footer}>
         <span>آماده برای طراحی</span>
+
         <span>
           {document.objects.length} آبجکت
         </span>

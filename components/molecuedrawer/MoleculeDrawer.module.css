@@ -977,3 +977,8 @@
   color: #ffffff;
   background: #dc2626;
 }
+.secondaryButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}

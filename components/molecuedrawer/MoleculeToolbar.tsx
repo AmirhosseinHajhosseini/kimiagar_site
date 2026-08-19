@@ -1,7 +1,6 @@
 "use client";
 
 import type { InteractionMode } from "./types";
-
 import styles from "./MoleculeDrawer.module.css";
 
 interface ToolbarItem {
@@ -65,6 +64,8 @@ const toolbarItems: readonly ToolbarItem[] = [
 interface MoleculeToolbarProps {
   activeMode: InteractionMode;
   showGrid: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   onModeChange: (mode: InteractionMode) => void;
   onToggleGrid: () => void;
   onUndo: () => void;
@@ -74,6 +75,8 @@ interface MoleculeToolbarProps {
 export default function MoleculeToolbar({
   activeMode,
   showGrid,
+  canUndo,
+  canRedo,
   onModeChange,
   onToggleGrid,
   onUndo,
@@ -86,22 +89,33 @@ export default function MoleculeToolbar({
     >
       <div className={styles.toolbarGroup}>
         {toolbarItems.map((item) => {
-          const isActive = activeMode === item.mode;
+          const isActive =
+            activeMode === item.mode;
 
           return (
             <button
               key={item.mode}
               type="button"
               className={`${styles.toolButton} ${
-                isActive ? styles.toolButtonActive : ""
+                isActive
+                  ? styles.toolButtonActive
+                  : ""
               }`}
-              onClick={() => onModeChange(item.mode)}
+              onClick={() =>
+                onModeChange(item.mode)
+              }
               aria-pressed={isActive}
               aria-label={item.label}
               title={`${item.label} — میانبر ${item.shortcut}`}
             >
-              <span className={styles.toolIcon}>{item.icon}</span>
-              <span className={styles.toolLabel}>{item.label}</span>
+              <span className={styles.toolIcon}>
+                {item.icon}
+              </span>
+
+              <span className={styles.toolLabel}>
+                {item.label}
+              </span>
+
               <kbd>{item.shortcut}</kbd>
             </button>
           );
@@ -124,20 +138,22 @@ export default function MoleculeToolbar({
 
         <button
           type="button"
-          className={`${styles.secondaryButton} ${styles.disabledButton}`}
+          className={styles.secondaryButton}
           onClick={onUndo}
-          disabled
-          title="بازگشت — در مرحله ۹ فعال می‌شود"
+          disabled={!canUndo}
+          title="بازگشت آخرین تغییر"
+          aria-label="بازگشت"
         >
           ↶ بازگشت
         </button>
 
         <button
           type="button"
-          className={`${styles.secondaryButton} ${styles.disabledButton}`}
+          className={styles.secondaryButton}
           onClick={onRedo}
-          disabled
-          title="انجام دوباره — در مرحله ۹ فعال می‌شود"
+          disabled={!canRedo}
+          title="انجام دوباره آخرین تغییر"
+          aria-label="انجام دوباره"
         >
           ↷ دوباره
         </button>
