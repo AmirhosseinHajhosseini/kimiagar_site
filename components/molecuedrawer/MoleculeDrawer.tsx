@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   CSSProperties,
   MouseEvent as ReactMouseEvent,
@@ -19,32 +12,57 @@ import {
   createInitialDocument,
 } from "./chemistry/initialState";
 
-import type {
-  Atom,
-  Bond,
-  BondOrder,
-  BondType,
-  ElementSymbol,
-  InteractionMode,
-  MechanismDocument,
-  ThemeState,
-} from "./types";
-
-import { useDocumentHistory } from "./useDocumentHistory";
 import { getElementData } from "./chemistry/atomData";
+import { RING_TEMPLATES } from "./chemistry/ringTemplates";
 import { getTheme } from "./theme";
 import MoleculeToolbar from "./MoleculeToolbar";
 import MoleculeSidebar from "./MoleculeSidebar";
+import { useDocumentHistory } from "./useDocumentHistory";
+
+import type {
+  Atom,
+  ArrowType,
+  Bond,
+  BondOrder,
+  BondType,
+  ChargeKind,
+  ElectronDisplay,
+  ElementSymbol,
+  InteractionMode,
+  MechanismDocument,
+  Ring,
+  RingKind,
+  ThemeState,
+} from "./types";
+
 
 import styles from "./MoleculeDrawer.module.css";
 
-const STORAGE_KEY = "molecuedrawer-document";
-
+const STORAGE_KEY = "molecule-drawer-document";
 const SVG_WIDTH = 1200;
 const SVG_HEIGHT = 800;
 const ATOM_RADIUS = 18;
+const RING_DEFAULT_RADIUS = 54;
 
 type SimpleBondOrder = 1 | 2 | 3;
+type RingDeleteMode = "simple" | "structure";
+
+type MoleculeCSSProperties = CSSProperties & {
+  "--md-canvas-background"?: string;
+  "--md-grid-color"?: string;
+  "--md-grid-strong-color"?: string;
+  "--md-surface-background"?: string;
+  "--md-surface-elevated"?: string;
+  "--md-border-color"?: string;
+  "--md-text-primary"?: string;
+  "--md-text-secondary"?: string;
+  "--md-text-muted"?: string;
+  "--md-title-color"?: string;
+  "--md-bond-color"?: string;
+  "--md-arrow-color"?: string;
+  "--md-selection-color"?: string;
+  "--md-focus-color"?: string;
+};
 
 type Point = {
   x: number;
@@ -58,44 +76,45 @@ type BondLine = {
   y2: number;
 };
 
-const createAtom = (
-  element: ElementSymbol,
-  position: Point,
-): Atom => {
-  const elementData = getElementData(element);
+const createAtom = (element: ElementSymbol, position: Point): Atom => ({
+  id: createId("atom"),
+  type: "atom",
+  element,
+  position,
 
-  return {
-    id: createId("atom"),
-    type: "atom",
-    element,
-    position,
-    selected: false,
-    locked: false,
-    visible: true,
-    zIndex: 1,
+  selected: false,
+  locked: false,
+  visible: true,
+  zIndex: 1,
 
-    style: createDefaultStyle({
-      color: elementData.defaultTextColor,
-      fillColor: "transparent",
-      strokeColor: elementData.defaultColor,
-      fontSize: 24,
-    }),
+  style: createDefaultStyle({
+    fillColor: "#FFFFFF",
+    strokeColor: "#374151",
+    strokeWidth: 2,
+  }),
 
-    formalCharge: 0,
-    radical: "none",
-    explicitHydrogens: 0,
-    showImplicitHydrogens: true,
-    showLonePairs: false,
-    aromatic: false,
-    displayMode: "label",
-    sphereRadius: ATOM_RADIUS,
-    labelSize: 24,
-    chargeColor: "#B91C1C",
-    radicalColor: "#B91C1C",
-    lonePairColor: "#2563EB",
-    attachedBondIds: [],
-  };
-};
+  formalCharge: 0,
+  partialCharge: "none",
+  electronDisplay: "none",
+
+  radical: "none",
+  explicitHydrogens: 0,
+  showImplicitHydrogens: true,
+  showLonePairs: false,
+  aromatic: false,
+
+  displayMode: "label",
+  sphereRadius: 18,
+  labelSize: 16,
+
+  chargeColor: "#B91C1C",
+  partialChargeColor: "#7C3AED",
+  radicalColor: "#DC2626",
+  lonePairColor: "#2563EB",
+
+  attachedBondIds: [],
+});
+
 
 const createBond = (
   startAtomId: string,
@@ -110,7 +129,6 @@ const createBond = (
     locked: false,
     visible: true,
     zIndex: 0,
-
     style: createDefaultStyle({
       color: "#123b5d",
       fillColor: "transparent",
@@ -121,7 +139,6 @@ const createBond = (
       lineCap: "round",
       lineJoin: "round",
     }),
-
     startAtomId,
     endAtomId,
     order,
@@ -136,17 +153,46 @@ const createBond = (
   };
 };
 
-const getSimpleBondOrder = (
-  order: BondOrder,
-): SimpleBondOrder => {
-  if (order === 2) {
-    return 2;
-  }
+const createRingObject = (
+  ringKind: RingKind,
+  center: Point,
+  radius: number,
+  sides: number,
+  atomIds: string[],
+  bondIds: string[],
+  aromatic: boolean,
+): Ring => {
+  return {
+    id: createId("ring"),
+    type: "ring",
+    selected: true,
+    locked: false,
+    visible: true,
+    zIndex: 0,
+    style: createDefaultStyle({
+      color: aromatic ? "#8B5CF6" : "#123b5d",
+      fillColor: "transparent",
+      strokeColor: aromatic ? "#8B5CF6" : "#123b5d",
+      strokeWidth: 3,
+      opacity: 1,
+      fontSize: 16,
+      lineCap: "round",
+      lineJoin: "round",
+    }),
+    ringKind,
+    center,
+    radius,
+    sides,
+    rotation: -Math.PI / 2,
+    aromatic,
+    atomIds,
+    bondIds,
+  };
+};
 
-  if (order === 3) {
-    return 3;
-  }
-
+const getSimpleBondOrder = (order: BondOrder): SimpleBondOrder => {
+  if (order >= 3) return 3;
+  if (order === 2) return 2;
   return 1;
 };
 
@@ -159,33 +205,21 @@ const getBondLines = (
   const dy = end.y - start.y;
   const length = Math.sqrt(dx * dx + dy * dy);
 
-  if (length === 0) {
-    return [];
-  }
+  if (length === 0) return [];
 
   const normalX = -dy / length;
   const normalY = dx / length;
   const offset = 5;
 
-  const createLine = (
-    distance: number,
-  ): BondLine => ({
+  const createLine = (distance: number): BondLine => ({
     x1: start.x + normalX * distance,
     y1: start.y + normalY * distance,
     x2: end.x + normalX * distance,
     y2: end.y + normalY * distance,
   });
 
-  if (order === 1) {
-    return [createLine(0)];
-  }
-
-  if (order === 2) {
-    return [
-      createLine(-offset),
-      createLine(offset),
-    ];
-  }
+  if (order === 1) return [createLine(0)];
+  if (order === 2) return [createLine(-offset), createLine(offset)];
 
   return [
     createLine(0),
@@ -194,17 +228,12 @@ const getBondLines = (
   ];
 };
 
-const getWedgePoints = (
-  start: Point,
-  end: Point,
-): string | null => {
+const getWedgePoints = (start: Point, end: Point): string | null => {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.sqrt(dx * dx + dy * dy);
 
-  if (length === 0) {
-    return null;
-  }
+  if (length === 0) return null;
 
   const normalX = -dy / length;
   const normalY = dx / length;
@@ -212,7 +241,6 @@ const getWedgePoints = (
 
   const leftX = end.x + normalX * width;
   const leftY = end.y + normalY * width;
-
   const rightX = end.x - normalX * width;
   const rightY = end.y - normalY * width;
 
@@ -223,95 +251,57 @@ const getWedgePoints = (
   ].join(" ");
 };
 
-const getHashedWedgeLines = (
-  start: Point,
-  end: Point,
-): BondLine[] => {
+const getHashedWedgeLines = (start: Point, end: Point): BondLine[] => {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.sqrt(dx * dx + dy * dy);
 
-  if (length === 0) {
-    return [];
-  }
+  if (length === 0) return [];
 
   const normalX = -dy / length;
   const normalY = dx / length;
-
-  const count = Math.max(
-    5,
-    Math.floor(length / 10),
-  );
-
+  const count = Math.max(5, Math.floor(length / 10));
   const maxWidth = 14;
 
-  return Array.from(
-    { length: count },
-    (_, index) => {
-      const progress = (index + 1) / count;
+  return Array.from({ length: count }, (_, index) => {
+    const progress = (index + 1) / count;
+    const centerX = start.x + dx * progress;
+    const centerY = start.y + dy * progress;
+    const halfWidth = (maxWidth * progress) / 2;
 
-      const centerX = start.x + dx * progress;
-      const centerY = start.y + dy * progress;
-
-      const halfWidth =
-        (maxWidth * progress) / 2;
-
-      return {
-        x1: centerX - normalX * halfWidth,
-        y1: centerY - normalY * halfWidth,
-        x2: centerX + normalX * halfWidth,
-        y2: centerY + normalY * halfWidth,
-      };
-    },
-  );
+    return {
+      x1: centerX - normalX * halfWidth,
+      y1: centerY - normalY * halfWidth,
+      x2: centerX + normalX * halfWidth,
+      y2: centerY + normalY * halfWidth,
+    };
+  });
 };
 
-const getWavyPoints = (
-  start: Point,
-  end: Point,
-): string | null => {
+const getWavyPoints = (start: Point, end: Point): string | null => {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const length = Math.sqrt(dx * dx + dy * dy);
 
-  if (length === 0) {
-    return null;
-  }
+  if (length === 0) return null;
 
   const normalX = -dy / length;
   const normalY = dx / length;
   const amplitude = 5;
+  const segments = Math.max(6, Math.floor(length / 12));
 
-  const segments = Math.max(
-    6,
-    Math.floor(length / 12),
-  );
+  return Array.from({ length: segments + 1 }, (_, index) => {
+    const progress = index / segments;
+    const direction = index % 2 === 0 ? 1 : -1;
 
-  return Array.from(
-    { length: segments + 1 },
-    (_, index) => {
-      const progress = index / segments;
-      const direction =
-        index % 2 === 0 ? 1 : -1;
+    const x = start.x + dx * progress + normalX * amplitude * direction;
+    const y = start.y + dy * progress + normalY * amplitude * direction;
 
-      const x =
-        start.x +
-        dx * progress +
-        normalX * amplitude * direction;
-
-      const y =
-        start.y +
-        dy * progress +
-        normalY * amplitude * direction;
-
-      return `${x},${y}`;
-    },
-  ).join(" ");
+    return `${x},${y}`;
+  }).join(" ");
 };
 
-const getBondTypeLabel = (
-  bondType: BondType,
-): string => {
+const getBondTypeLabel = (bondType: BondType): string => {
   switch (bondType) {
     case "single":
       return "یگانه";
@@ -329,12 +319,25 @@ const getBondTypeLabel = (
       return "خط‌چین";
     case "wavy":
       return "موج‌دار";
-    case "bold":
-      return "پررنگ";
-    case "curved":
-      return "خمیده";
     default:
       return "پیوند";
+  }
+};
+
+const getRingLabel = (ringKind: RingKind): string => {
+  switch (ringKind) {
+    case "cyclopropane":
+      return "سیکلوپروپان";
+    case "cyclobutane":
+      return "سیکلوبوتان";
+    case "cyclopentane":
+      return "سیکلوپنتان";
+    case "cyclohexane":
+      return "سیکلوهگزان";
+    case "benzene":
+      return "بنزن";
+    default:
+      return "حلقه";
   }
 };
 
@@ -344,19 +347,17 @@ const loadDocument = (): MechanismDocument => {
   }
 
   try {
-    const savedDocument =
-      window.localStorage.getItem(STORAGE_KEY);
+    const savedDocument = window.localStorage.getItem(STORAGE_KEY);
 
     if (!savedDocument) {
       return createInitialDocument();
     }
 
-    const parsedDocument: MechanismDocument =
-      JSON.parse(savedDocument);
+    const parsedDocument: MechanismDocument = JSON.parse(savedDocument);
 
     if (
       !parsedDocument ||
-      parsedDocument.title !== "Molecuedrawer" ||
+      parsedDocument.title !== "MoleculeDrawer" ||
       !Array.isArray(parsedDocument.objects)
     ) {
       return createInitialDocument();
@@ -369,10 +370,7 @@ const loadDocument = (): MechanismDocument => {
 };
 
 export default function MoleculeDrawer() {
-  const initialDocument = useMemo(
-    () => createInitialDocument(),
-    [],
-  );
+  const initialDocument = useMemo(() => createInitialDocument(), []);
 
   const {
     document,
@@ -382,9 +380,7 @@ export default function MoleculeDrawer() {
     resetHistory,
     canUndo,
     canRedo,
-  } = useDocumentHistory<MechanismDocument>(
-    initialDocument,
-  );
+  } = useDocumentHistory<MechanismDocument>(initialDocument);
 
   const [isReady, setIsReady] = useState(false);
   const [bondSelection, setBondSelection] = useState<string[]>([]);
@@ -404,22 +400,12 @@ export default function MoleculeDrawer() {
   }, [resetHistory]);
 
   useEffect(() => {
-    if (!isReady || typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(document),
-    );
+    if (!isReady || typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(document));
   }, [document, isReady]);
 
   const updateDocument = useCallback(
-    (
-      updater: (
-        currentDocument: MechanismDocument,
-      ) => MechanismDocument,
-    ) => {
+    (updater: (currentDocument: MechanismDocument) => MechanismDocument) => {
       updateHistoryDocument((currentDocument) => {
         const nextDocument = updater(currentDocument);
         return {
@@ -460,10 +446,7 @@ export default function MoleculeDrawer() {
   );
 
   const setSelectedBond = useCallback(
-    (
-      bondType: BondType,
-      bondOrder: BondOrder,
-    ) => {
+    (bondType: BondType, bondOrder: BondOrder) => {
       updateDocument((currentDocument) => ({
         ...currentDocument,
         tool: {
@@ -478,12 +461,40 @@ export default function MoleculeDrawer() {
     [updateDocument],
   );
 
+  const setSelectedElement = useCallback(
+    (element: ElementSymbol) => {
+      updateDocument((currentDocument) => ({
+        ...currentDocument,
+        tool: {
+          ...currentDocument.tool,
+          selectedElement: element,
+          mode: "add-atom",
+        },
+      }));
+      setBondSelection([]);
+    },
+    [updateDocument],
+  );
+
+  const setSelectedRing = useCallback(
+    (ringKind: RingKind) => {
+      updateDocument((currentDocument) => ({
+        ...currentDocument,
+        tool: {
+          ...currentDocument.tool,
+          selectedRingKind: ringKind,
+          mode: "add-ring",
+        },
+      }));
+      setBondSelection([]);
+    },
+    [updateDocument],
+  );
+
   const toggleTheme = useCallback(() => {
     updateDocument((currentDocument) => {
       const nextMode: ThemeState["mode"] =
-        currentDocument.theme.mode === "light"
-          ? "dark"
-          : "light";
+        currentDocument.theme.mode === "light" ? "dark" : "light";
 
       return {
         ...currentDocument,
@@ -514,21 +525,6 @@ export default function MoleculeDrawer() {
     }));
   }, [updateDocument]);
 
-  const setSelectedElement = useCallback(
-    (element: string) => {
-      updateDocument((currentDocument) => ({
-        ...currentDocument,
-        tool: {
-          ...currentDocument.tool,
-          selectedElement: element,
-          mode: "add-atom",
-        },
-      }));
-      setBondSelection([]);
-    },
-    [updateDocument],
-  );
-
   const clearSelection = useCallback(() => {
     updateDocument((currentDocument) => ({
       ...currentDocument,
@@ -542,68 +538,208 @@ export default function MoleculeDrawer() {
   }, [updateDocument]);
 
   const clearCanvas = useCallback(() => {
-    updateDocument((currentDocument) => ({
-      ...createInitialDocument(),
-      theme: currentDocument.theme,
-      viewport: currentDocument.viewport,
-    }));
-    setBondSelection([]);
-  }, [updateDocument]);
+    const confirmed = window.confirm(
+      "آیا مطمئن هستید که می‌خواهید بوم را پاک کنید و صفحه را رفرش کنید؟",
+    );
+    if (!confirmed) return;
 
-  // حذف اتم به همراه تمام پیوندهای متصل به آن
+    window.localStorage.removeItem(STORAGE_KEY);
+    window.location.reload();
+  }, []);
+
   const deleteAtom = useCallback(
     (atomId: string) => {
-      updateDocument((currentDocument) => ({
-        ...currentDocument,
-        objects: currentDocument.objects.filter((obj) => {
-          if (obj.id === atomId) return false;
+      updateDocument((currentDocument) => {
+        const relatedRingIds = new Set<string>();
+        const relatedBondIds = new Set<string>();
+
+        currentDocument.objects.forEach((object) => {
           if (
-            obj.type === "bond" &&
-            (obj.startAtomId === atomId || obj.endAtomId === atomId)
+            object.type === "ring" &&
+            object.atomIds.includes(atomId)
           ) {
-            return false;
+            relatedRingIds.add(object.id);
           }
-          return true;
-        }),
-        selection: {
-          ...currentDocument.selection,
-          selectedIds: currentDocument.selection.selectedIds.filter(
-            (id) => id !== atomId,
+
+          if (
+            object.type === "bond" &&
+            (
+              object.startAtomId === atomId ||
+              object.endAtomId === atomId
+            )
+          ) {
+            relatedBondIds.add(object.id);
+          }
+        });
+
+        const removedIds = new Set<string>([
+          atomId,
+          ...relatedRingIds,
+          ...relatedBondIds,
+        ]);
+
+        return {
+          ...currentDocument,
+          objects: currentDocument.objects.filter(
+            (object) => !removedIds.has(object.id),
           ),
-          primarySelectedId:
-            currentDocument.selection.primarySelectedId === atomId
+          selection: {
+            ...currentDocument.selection,
+            selectedIds:
+              currentDocument.selection.selectedIds.filter(
+                (id) => !removedIds.has(id),
+              ),
+            primarySelectedId: removedIds.has(
+              currentDocument.selection.primarySelectedId ?? "",
+            )
               ? null
               : currentDocument.selection.primarySelectedId,
-        },
-      }));
+          },
+        };
+      });
+
+      setBondSelection([]);
     },
     [updateDocument],
   );
 
-  // حذف پیوند منفرد
   const deleteBond = useCallback(
     (bondId: string) => {
-      updateDocument((currentDocument) => ({
-        ...currentDocument,
-        objects: currentDocument.objects.filter(
-          (object) => object.id !== bondId,
-        ),
-        selection: {
-          ...currentDocument.selection,
-          selectedIds: currentDocument.selection.selectedIds.filter(
-            (id) => id !== bondId,
-          ),
-          primarySelectedId:
-            currentDocument.selection.primarySelectedId === bondId
+      updateDocument((currentDocument) => {
+        const relatedRingIds = new Set<string>();
+
+        currentDocument.objects.forEach((obj) => {
+          if (obj.type === "ring" && obj.bondIds.includes(bondId)) {
+            relatedRingIds.add(obj.id);
+          }
+        });
+
+        const removedIds = new Set<string>([bondId, ...relatedRingIds]);
+
+        return {
+          ...currentDocument,
+          objects: currentDocument.objects
+            .filter((obj) => !removedIds.has(obj.id))
+            .map((obj) => {
+              if (obj.type !== "atom") return obj;
+              return {
+                ...obj,
+                attachedBondIds: obj.attachedBondIds.filter(
+                  (id) => id !== bondId,
+                ),
+              };
+            }),
+          selection: {
+            ...currentDocument.selection,
+            selectedIds: currentDocument.selection.selectedIds.filter(
+              (id) => !removedIds.has(id),
+            ),
+            primarySelectedId: removedIds.has(
+              currentDocument.selection.primarySelectedId ?? "",
+            )
               ? null
               : currentDocument.selection.primarySelectedId,
-        },
-      }));
+          },
+        };
+      });
+
+      setBondSelection([]);
     },
     [updateDocument],
   );
 
-  // حذف المان انتخاب‌شده با کلید کیبورد
+  const deleteRing = useCallback(
+    (ringId: string, mode: RingDeleteMode = "simple") => {
+      updateDocument((currentDocument) => {
+        const ring = currentDocument.objects.find(
+          (object): object is Ring =>
+            object.type === "ring" && object.id === ringId,
+        );
+
+        if (!ring) return currentDocument;
+
+        if (mode === "simple") {
+          return {
+            ...currentDocument,
+            objects: currentDocument.objects.filter(
+              (object) => object.id !== ringId,
+            ),
+            selection: {
+              ...currentDocument.selection,
+              selectedIds: currentDocument.selection.selectedIds.filter(
+                (id) => id !== ringId,
+              ),
+              primarySelectedId:
+                currentDocument.selection.primarySelectedId === ringId
+                  ? null
+                  : currentDocument.selection.primarySelectedId,
+            },
+          };
+        }
+
+        const ringAtomIds = new Set(ring.atomIds);
+        const ringBondIds = new Set(ring.bondIds);
+
+        const atomsToKeep = new Set<string>();
+
+        currentDocument.objects.forEach((object) => {
+          if (object.type !== "bond") return;
+          if (ringBondIds.has(object.id)) return;
+
+          if (ringAtomIds.has(object.startAtomId)) {
+            atomsToKeep.add(object.startAtomId);
+          }
+
+          if (ringAtomIds.has(object.endAtomId)) {
+            atomsToKeep.add(object.endAtomId);
+          }
+        });
+
+        const atomsToDelete = new Set(
+          [...ringAtomIds].filter((atomId) => !atomsToKeep.has(atomId)),
+        );
+
+        const bondsToDelete = new Set<string>(ringBondIds);
+
+        currentDocument.objects.forEach((object) => {
+          if (object.type !== "bond") return;
+
+          if (
+            atomsToDelete.has(object.startAtomId) ||
+            atomsToDelete.has(object.endAtomId)
+          ) {
+            bondsToDelete.add(object.id);
+          }
+        });
+
+        const removedIds = new Set<string>([
+          ring.id,
+          ...atomsToDelete,
+          ...bondsToDelete,
+        ]);
+
+        return {
+          ...currentDocument,
+          objects: currentDocument.objects.filter(
+            (object) => !removedIds.has(object.id),
+          ),
+          selection: {
+            ...currentDocument.selection,
+            selectedIds: currentDocument.selection.selectedIds.filter(
+              (id) => !removedIds.has(id),
+            ),
+            primarySelectedId: removedIds.has(
+              currentDocument.selection.primarySelectedId ?? "",
+            )
+              ? null
+              : currentDocument.selection.primarySelectedId,
+          },
+        };
+      });
+    },
+    [updateDocument],
+  );
+
   const deleteSelected = useCallback(() => {
     const selectedId = document.selection.primarySelectedId;
     if (!selectedId) return;
@@ -615,23 +751,86 @@ export default function MoleculeDrawer() {
       deleteAtom(selectedId);
     } else if (target.type === "bond") {
       deleteBond(selectedId);
+    } else if (target.type === "ring") {
+      deleteRing(selectedId, "simple");
     }
   }, [
     document.selection.primarySelectedId,
     document.objects,
     deleteAtom,
     deleteBond,
+    deleteRing,
   ]);
 
-  // کلیک روی اتم: در هر حالتی اول انتخاب می‌شود، بعد رفتار ابزار
+  const createRingAtPoint = useCallback(
+    (ringKind: RingKind, center: Point) => {
+      const template = RING_TEMPLATES[ringKind];
+      if (!template) return;
+
+      const sides = template.sides;
+      const radius = RING_DEFAULT_RADIUS;
+
+      const atoms: Atom[] = [];
+      const bonds: Bond[] = [];
+
+      for (let i = 0; i < sides; i++) {
+        const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
+        const x = center.x + radius * Math.cos(angle);
+        const y = center.y + radius * Math.sin(angle);
+        atoms.push(createAtom("C", { x, y }));
+      }
+
+      const atomIds = atoms.map((atom) => atom.id);
+
+      for (let i = 0; i < sides; i++) {
+        const startAtomId = atomIds[i];
+        const endAtomId = atomIds[(i + 1) % sides];
+        const isDoubleBond =
+          template.alternatingDoubleBonds === true && i % 2 === 0;
+
+        bonds.push(
+          createBond(
+            startAtomId,
+            endAtomId,
+            template.aromatic
+              ? "aromatic"
+              : isDoubleBond
+                ? "double"
+                : "single",
+            template.aromatic ? 1.5 : isDoubleBond ? 2 : 1,
+          ),
+        );
+      }
+
+      const bondIds = bonds.map((bond) => bond.id);
+
+      const ring = createRingObject(
+        template.ringKind,
+        center,
+        radius,
+        sides,
+        atomIds,
+        bondIds,
+        template.aromatic,
+      );
+
+      updateDocument((currentDocument) => ({
+        ...currentDocument,
+        objects: [...currentDocument.objects, ...atoms, ...bonds, ring],
+        selection: {
+          ...currentDocument.selection,
+          selectedIds: [ring.id],
+          primarySelectedId: ring.id,
+        },
+      }));
+    },
+    [updateDocument],
+  );
+
   const handleAtomMouseDown = useCallback(
-    (
-      event: ReactMouseEvent<SVGGElement>,
-      atomId: string,
-    ) => {
+    (event: ReactMouseEvent<SVGGElement>, atomId: string) => {
       event.stopPropagation();
 
-      // ۱) در همه حالت‌ها: اتم را انتخاب کن (حلقه طلایی + پنل ویژگی‌ها)
       updateDocument((currentDocument) => ({
         ...currentDocument,
         selection: {
@@ -641,35 +840,20 @@ export default function MoleculeDrawer() {
         },
       }));
 
-      // ۲) حالت پاک‌کن: حذف اتم و پیوندهای متصل
       if (document.tool.mode === "erase") {
         deleteAtom(atomId);
         return;
       }
 
-      // ۳) حالت انتخاب: فعال‌سازی درگ
       if (document.tool.mode === "select") {
         setDraggingAtomId(atomId);
         return;
       }
 
-      // ۴) حالت رسم پیوند
       if (document.tool.mode === "add-bond") {
-        const clickedAtomExists = document.objects.some(
-          (object): object is Atom =>
-            object.type === "atom" && object.id === atomId,
-        );
-
-        if (!clickedAtomExists) return;
-
         setBondSelection((currentSelection) => {
-          if (currentSelection.length === 0) {
-            return [atomId];
-          }
-
-          if (currentSelection[0] === atomId) {
-            return [];
-          }
+          if (currentSelection.length === 0) return [atomId];
+          if (currentSelection[0] === atomId) return [];
 
           const startAtomId = currentSelection[0];
           const endAtomId = atomId;
@@ -677,14 +861,12 @@ export default function MoleculeDrawer() {
           updateDocument((currentDocument) => {
             const startAtomExists = currentDocument.objects.some(
               (object): object is Atom =>
-                object.type === "atom" &&
-                object.id === startAtomId,
+                object.type === "atom" && object.id === startAtomId,
             );
 
             const endAtomExists = currentDocument.objects.some(
               (object): object is Atom =>
-                object.type === "atom" &&
-                object.id === endAtomId,
+                object.type === "atom" && object.id === endAtomId,
             );
 
             if (!startAtomExists || !endAtomExists) {
@@ -711,9 +893,24 @@ export default function MoleculeDrawer() {
               currentDocument.tool.selectedBondOrder,
             );
 
+            const nextObjects = currentDocument.objects.map((object) => {
+              if (object.type !== "atom") return object;
+
+              if (object.id === startAtomId || object.id === endAtomId) {
+                return {
+                  ...object,
+                  attachedBondIds: [
+                    ...new Set([...object.attachedBondIds, bond.id]),
+                  ],
+                };
+              }
+
+              return object;
+            });
+
             return {
               ...currentDocument,
-              objects: [...currentDocument.objects, bond],
+              objects: [...nextObjects, bond],
               selection: {
                 ...currentDocument.selection,
                 selectedIds: [bond.id],
@@ -724,25 +921,35 @@ export default function MoleculeDrawer() {
 
           return [];
         });
+
+        return;
+      }
+
+      if (document.tool.mode === "add-ring") {
+        const ringKind = document.tool.selectedRingKind;
+        const atomPosition = document.objects.find(
+          (o): o is Atom => o.id === atomId && o.type === "atom",
+        )?.position;
+
+        createRingAtPoint(ringKind, atomPosition ?? { x: 0, y: 0 });
       }
     },
     [
       document.tool.mode,
+      document.tool.selectedBondOrder,
+      document.tool.selectedBondType,
+      document.tool.selectedRingKind,
       document.objects,
       updateDocument,
       deleteAtom,
+      createRingAtPoint,
     ],
   );
 
-  // کلیک روی پیوند: در همه حالت‌ها انتخاب می‌شود
   const handleBondClick = useCallback(
-    (
-      event: ReactMouseEvent<SVGGElement>,
-      bondId: string,
-    ) => {
+    (event: ReactMouseEvent<SVGGElement>, bondId: string) => {
       event.stopPropagation();
 
-      // انتخاب پیوند
       updateDocument((currentDocument) => ({
         ...currentDocument,
         selection: {
@@ -752,24 +959,36 @@ export default function MoleculeDrawer() {
         },
       }));
 
-      // حالت پاک‌کن: حذف پیوند
       if (document.tool.mode === "erase") {
         deleteBond(bondId);
       }
     },
-    [
-      document.tool.mode,
-      deleteBond,
-      updateDocument,
-    ],
+    [document.tool.mode, deleteBond, updateDocument],
   );
 
-  // حرکت ماوس روی Canvas برای جابجایی (Drag)
+  const handleRingClick = useCallback(
+    (event: ReactMouseEvent<SVGGElement>, ringId: string) => {
+      event.stopPropagation();
+
+      updateDocument((currentDocument) => ({
+        ...currentDocument,
+        selection: {
+          ...currentDocument.selection,
+          selectedIds: [ringId],
+          primarySelectedId: ringId,
+        },
+      }));
+
+      if (document.tool.mode === "erase") {
+        deleteRing(ringId, "simple");
+      }
+    },
+    [document.tool.mode, deleteRing, updateDocument],
+  );
+
   const handleCanvasMouseMove = useCallback(
     (event: ReactMouseEvent<SVGSVGElement>) => {
-      if (!draggingAtomId || document.tool.mode !== "select") {
-        return;
-      }
+      if (!draggingAtomId || document.tool.mode !== "select") return;
 
       const svg = svgRef.current;
       if (!svg) return;
@@ -786,7 +1005,6 @@ export default function MoleculeDrawer() {
         ATOM_RADIUS,
         Math.min(SVG_WIDTH - ATOM_RADIUS, svgPoint.x),
       );
-
       let y = Math.max(
         ATOM_RADIUS,
         Math.min(SVG_HEIGHT - ATOM_RADIUS, svgPoint.y),
@@ -817,35 +1035,21 @@ export default function MoleculeDrawer() {
   );
 
   const handleCanvasMouseUp = useCallback(() => {
-    if (draggingAtomId) {
-      setDraggingAtomId(null);
-    }
+    if (draggingAtomId) setDraggingAtomId(null);
   }, [draggingAtomId]);
 
-  // کلیک روی بوم: فقط وقتی روی پس‌زمینه خالی باشد
   const handleCanvasClick = useCallback(
     (event: ReactMouseEvent<SVGSVGElement>) => {
       const svg = svgRef.current;
+      if (!svg || event.target !== svg) return;
 
-      // اگر روی خود اتم یا پیوند کلیک شده، اینجا کاری نکن
-      if (!svg || event.target !== svg) {
-        return;
-      }
-
-      // حالت انتخاب: کلیک روی فضای خالی = لغو انتخاب
       if (document.tool.mode === "select") {
         clearSelection();
         return;
       }
 
-      // حالت پیوند: کلیک روی فضای خالی = لغو شروع پیوند
       if (document.tool.mode === "add-bond") {
         setBondSelection([]);
-        return;
-      }
-
-      // فقط در حالت افزودن اتم، اتم جدید بساز
-      if (document.tool.mode !== "add-atom") {
         return;
       }
 
@@ -857,11 +1061,32 @@ export default function MoleculeDrawer() {
         event.clientY,
       ).matrixTransform(screenMatrix.inverse());
 
+      if (document.tool.mode === "add-ring") {
+        let x = Math.max(
+          RING_DEFAULT_RADIUS,
+          Math.min(SVG_WIDTH - RING_DEFAULT_RADIUS, svgPoint.x),
+        );
+        let y = Math.max(
+          RING_DEFAULT_RADIUS,
+          Math.min(SVG_HEIGHT - RING_DEFAULT_RADIUS, svgPoint.y),
+        );
+
+        if (document.viewport.snapToGrid) {
+          const gridSize = document.viewport.gridSize || 20;
+          x = Math.round(x / gridSize) * gridSize;
+          y = Math.round(y / gridSize) * gridSize;
+        }
+
+        createRingAtPoint(document.tool.selectedRingKind, { x, y });
+        return;
+      }
+
+      if (document.tool.mode !== "add-atom") return;
+
       let x = Math.max(
         ATOM_RADIUS,
         Math.min(SVG_WIDTH - ATOM_RADIUS, svgPoint.x),
       );
-
       let y = Math.max(
         ATOM_RADIUS,
         Math.min(SVG_HEIGHT - ATOM_RADIUS, svgPoint.y),
@@ -873,10 +1098,7 @@ export default function MoleculeDrawer() {
         y = Math.round(y / gridSize) * gridSize;
       }
 
-      const atom = createAtom(
-        document.tool.selectedElement,
-        { x, y },
-      );
+      const atom = createAtom(document.tool.selectedElement, { x, y });
 
       updateDocument((currentDocument) => ({
         ...currentDocument,
@@ -891,10 +1113,12 @@ export default function MoleculeDrawer() {
     [
       document.tool.mode,
       document.tool.selectedElement,
+      document.tool.selectedRingKind,
       document.viewport.snapToGrid,
       document.viewport.gridSize,
       updateDocument,
       clearSelection,
+      createRingAtPoint,
     ],
   );
 
@@ -902,25 +1126,21 @@ export default function MoleculeDrawer() {
     (object) => object.id === document.selection.primarySelectedId,
   );
 
-  const selectedAtom =
-    selectedObject?.type === "atom" ? selectedObject : null;
-
-  const selectedBond =
-    selectedObject?.type === "bond" ? selectedObject : null;
+  const selectedAtom = selectedObject?.type === "atom" ? selectedObject : null;
+  const selectedBond = selectedObject?.type === "bond" ? selectedObject : null;
+  const selectedRing = selectedObject?.type === "ring" ? selectedObject : null;
 
   const selectedStartAtom = selectedBond
     ? document.objects.find(
         (object): object is Atom =>
-          object.type === "atom" &&
-          object.id === selectedBond.startAtomId,
+          object.type === "atom" && object.id === selectedBond.startAtomId,
       )
     : null;
 
   const selectedEndAtom = selectedBond
     ? document.objects.find(
         (object): object is Atom =>
-          object.type === "atom" &&
-          object.id === selectedBond.endAtomId,
+          object.type === "atom" && object.id === selectedBond.endAtomId,
       )
     : null;
 
@@ -939,29 +1159,30 @@ export default function MoleculeDrawer() {
     "--md-arrow-color": theme.chemistry.arrowColor,
     "--md-selection-color": theme.chemistry.selectionColor,
     "--md-focus-color": theme.controls.focus,
-  } as CSSProperties;
+  } as MoleculeCSSProperties;
 
   const atoms = document.objects.filter(
     (object): object is Atom => object.type === "atom",
   );
-
   const bonds = document.objects.filter(
     (object): object is Bond => object.type === "bond",
+  );
+  const rings = document.objects.filter(
+    (object): object is Ring => object.type === "ring",
   );
 
   const renderedBonds = bonds.map((bond) => {
     const atomA = atoms.find((atom) => atom.id === bond.startAtomId);
     const atomB = atoms.find((atom) => atom.id === bond.endAtomId);
 
-    if (!atomA || !atomB) {
-      return null;
-    }
+    if (!atomA || !atomB) return null;
 
     const start = atomA.position;
     const end = atomB.position;
 
     const isSelected =
-      document.selection.primarySelectedId === bond.id;
+      document.selection.primarySelectedId === bond.id ||
+      bondSelection.includes(bond.id);
 
     const strokeColor = isSelected
       ? "var(--md-selection-color)"
@@ -978,6 +1199,7 @@ export default function MoleculeDrawer() {
     const renderBondShape = () => {
       if (bond.bondType === "solid-wedge") {
         const points = getWedgePoints(start, end);
+
         if (!points) return null;
 
         return (
@@ -1021,6 +1243,7 @@ export default function MoleculeDrawer() {
 
       if (bond.bondType === "wavy") {
         const points = getWavyPoints(start, end);
+
         if (!points) return null;
 
         return (
@@ -1061,7 +1284,6 @@ export default function MoleculeDrawer() {
         onClick={(event) => handleBondClick(event, bond.id)}
         style={{ cursor: "pointer" }}
       >
-        {/* ناحیه نامرئی بزرگ برای کلیک راحت‌تر روی پیوند */}
         <line
           x1={start.x}
           y1={start.y}
@@ -1071,17 +1293,66 @@ export default function MoleculeDrawer() {
           strokeWidth={18}
           className={styles.bondHitArea}
         />
+
         {renderBondShape()}
+      </g>
+    );
+  });
+
+  const renderedRings = rings.map((ring) => {
+    const points = ring.atomIds
+      .map((atomId) => atoms.find((atom) => atom.id === atomId))
+      .filter((atom): atom is Atom => Boolean(atom))
+      .map((atom) => atom.position);
+
+    const isSelected = document.selection.primarySelectedId === ring.id;
+    if (points.length < 3) return null;
+
+    const polygonPoints = points.map((p) => `${p.x},${p.y}`).join(" ");
+
+    return (
+      <g
+        key={ring.id}
+        onClick={(event) => handleRingClick(event, ring.id)}
+        style={{ cursor: "pointer" }}
+      >
+        <polygon
+          points={polygonPoints}
+          fill="transparent"
+          stroke={
+            isSelected ? "var(--md-selection-color)" : ring.style.strokeColor
+          }
+          strokeWidth={ring.style.strokeWidth}
+          opacity={ring.style.opacity}
+        />
+        {ring.aromatic && (
+          <circle
+            cx={ring.center.x}
+            cy={ring.center.y}
+            r={ring.radius * 0.45}
+            fill="none"
+            stroke={
+              isSelected ? "var(--md-selection-color)" : ring.style.strokeColor
+            }
+            strokeWidth={2}
+            opacity={0.9}
+            pointerEvents="none"
+          />
+        )}
+        <polygon
+          points={polygonPoints}
+          fill="transparent"
+          stroke="transparent"
+          strokeWidth={20}
+          opacity={0}
+        />
       </g>
     );
   });
 
   const renderedAtoms = atoms.map((atom) => {
     const elementData = getElementData(atom.element);
-
-    const isSelected =
-      document.selection.primarySelectedId === atom.id;
-
+    const isSelected = document.selection.primarySelectedId === atom.id;
     const isBondStart = bondSelection[0] === atom.id;
     const isBondTarget = bondSelection.includes(atom.id);
 
@@ -1092,28 +1363,15 @@ export default function MoleculeDrawer() {
         aria-label={`اتم ${elementData.persianName}`}
         onMouseDown={(event) => handleAtomMouseDown(event, atom.id)}
         className={
-          document.tool.mode === "add-bond" &&
-          (isBondStart || isBondTarget)
+          document.tool.mode === "add-bond" && (isBondStart || isBondTarget)
             ? styles.atomSelected
             : undefined
         }
         style={{
-          cursor:
-            document.tool.mode === "select"
-              ? "grab"
-              : document.tool.mode === "erase"
-                ? "pointer"
-                : document.tool.mode === "add-bond"
-                  ? "pointer"
-                  : "pointer",
+          cursor: document.tool.mode === "select" ? "grab" : "pointer",
         }}
       >
-        {/* ناحیه کلیک بزرگ‌تر (نامرئی) */}
-        <circle
-          r={ATOM_RADIUS + 8}
-          fill="transparent"
-          pointerEvents="all"
-        />
+        <circle r={ATOM_RADIUS + 8} fill="transparent" pointerEvents="all" />
 
         {isSelected && (
           <circle
@@ -1149,10 +1407,10 @@ export default function MoleculeDrawer() {
     );
   });
 
-  // کلیدهای میانبر: Undo/Redo و Delete
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
+
       if (
         target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
@@ -1161,7 +1419,6 @@ export default function MoleculeDrawer() {
         return;
       }
 
-      // کلید حذف
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         deleteSelected();
@@ -1187,17 +1444,50 @@ export default function MoleculeDrawer() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleUndo, handleRedo, deleteSelected]);
+
+  const handleChargeChange = (charge: ChargeKind) => {
+  updateDocument((currentDocument) => ({
+    ...currentDocument,
+    tool: {
+      ...currentDocument.tool,
+      selectedCharge: charge,
+      mode: "add-charge",
+    },
+  }));
+  setBondSelection([]);
+};
+
+const handleElectronChange = (electron: ElectronDisplay) => {
+  updateDocument((currentDocument) => ({
+    ...currentDocument,
+    tool: {
+      ...currentDocument.tool,
+      selectedElectronDisplay: electron,
+      mode: "add-electron",
+    },
+  }));
+  setBondSelection([]);
+};
+
+const handleArrowChange = (arrowType: ArrowType) => {
+  updateDocument((currentDocument) => ({
+    ...currentDocument,
+    tool: {
+      ...currentDocument.tool,
+      selectedArrowType: arrowType,
+      mode: "add-arrow",
+    },
+  }));
+  setBondSelection([]);
+};
+
 
   return (
     <main
       className={`${styles.application} ${
-        document.theme.mode === "dark"
-          ? styles.dark
-          : styles.light
+        document.theme.mode === "dark" ? styles.dark : styles.light
       }`}
       style={cssVariables}
       dir="rtl"
@@ -1205,14 +1495,10 @@ export default function MoleculeDrawer() {
       <header className={styles.header}>
         <div className={styles.headerSide}>
           <span className={styles.statusDot} />
-          <span className={styles.statusText}>
-            سند جدید
-          </span>
+          <span className={styles.statusText}>سند جدید</span>
         </div>
 
-        <h1 className={styles.title}>
-          Molecuedrawer
-        </h1>
+        <h1 className={styles.title}>MoleculeDrawer</h1>
 
         <div className={styles.headerSide}>
           <button
@@ -1222,17 +1508,15 @@ export default function MoleculeDrawer() {
             aria-label="تغییر حالت روشن و تاریک"
             title="تغییر حالت روشن و تاریک"
           >
-            {document.theme.mode === "light"
-              ? "☾"
-              : "☀"}
+            {document.theme.mode === "light" ? "☾" : "☀"}
           </button>
 
           <button
             type="button"
             className={styles.headerButton}
             onClick={clearCanvas}
-            aria-label="پاک کردن بوم"
-            title="پاک کردن بوم"
+            aria-label="پاک کردن بوم و رفرش"
+            title="پاک کردن بوم و رفرش صفحه"
           >
             پاک‌سازی
           </button>
@@ -1251,20 +1535,23 @@ export default function MoleculeDrawer() {
       />
 
       <section className={styles.workspace}>
-        <MoleculeSidebar
-          document={document}
-          onModeChange={setInteractionMode}
-          onElementChange={setSelectedElement}
-          onBondChange={setSelectedBond}
-          onToggleGrid={toggleGrid}
-          onToggleSnap={toggleSnapToGrid}
-          onClearSelection={clearSelection}
-        />
+       <MoleculeSidebar
+  document={document}
+  onModeChange={setInteractionMode}
+  onElementChange={setSelectedElement}
+  onBondChange={setSelectedBond}
+  onRingChange={setSelectedRing}
+  onClearSelection={clearSelection}
+  onChargeChange={handleChargeChange}
+  onElectronChange={handleElectronChange}
+  onArrowChange={handleArrowChange}
+  onToggleGrid={toggleGrid}
+  onToggleSnap={toggleSnapToGrid}
+/>
 
-        <section
-          className={styles.canvasArea}
-          aria-label="ناحیه طراحی مولکول"
-        >
+
+
+        <section className={styles.canvasArea} aria-label="ناحیه طراحی مولکول">
           <div className={styles.canvasToolbar}>
             <span>
               ابزار فعال:{" "}
@@ -1275,72 +1562,37 @@ export default function MoleculeDrawer() {
                     ? "پاک‌کن"
                     : document.tool.mode === "add-atom"
                       ? "افزودن اتم"
-                      : "افزودن پیوند"}
+                      : document.tool.mode === "add-ring"
+                        ? "افزودن حلقه"
+                        : "افزودن پیوند"}
               </strong>
             </span>
 
             {document.tool.mode === "add-bond" && (
               <div className={styles.bondOrderControl}>
-                <span className={styles.bondOrderLabel}>
-                  نوع پیوند:
-                </span>
-
+                <span className={styles.bondOrderLabel}>نوع پیوند:</span>
                 <div className={styles.bondOrderButtons}>
                   {[
-                    {
-                      type: "single" as const,
-                      order: 1 as const,
-                      label: "یگانه",
-                    },
-                    {
-                      type: "double" as const,
-                      order: 2 as const,
-                      label: "دوگانه",
-                    },
-                    {
-                      type: "triple" as const,
-                      order: 3 as const,
-                      label: "سه‌گانه",
-                    },
-                    {
-                      type: "solid-wedge" as const,
-                      order: 1 as const,
-                      label: "گوه‌ای پر",
-                    },
-                    {
-                      type: "hashed-wedge" as const,
-                      order: 1 as const,
-                      label: "گوه‌ای خط‌چین",
-                    },
-                    {
-                      type: "dashed" as const,
-                      order: 1 as const,
-                      label: "خط‌چین",
-                    },
-                    {
-                      type: "wavy" as const,
-                      order: 1 as const,
-                      label: "موج‌دار",
-                    },
+                    { type: "single" as const, order: 1 as const, label: "یگانه" },
+                    { type: "double" as const, order: 2 as const, label: "دوگانه" },
+                    { type: "triple" as const, order: 3 as const, label: "سه‌گانه" },
+                    { type: "solid-wedge" as const, order: 1 as const, label: "گوه‌ای پر" },
+                    { type: "hashed-wedge" as const, order: 1 as const, label: "گوه‌ای خط‌چین" },
+                    { type: "dashed" as const, order: 1 as const, label: "خط‌چین" },
+                    { type: "wavy" as const, order: 1 as const, label: "موج‌دار" },
                   ].map((option) => {
                     const isActive =
-                      document.tool.selectedBondType ===
-                      option.type;
+                      document.tool.selectedBondType === option.type;
 
                     return (
                       <button
                         key={option.type}
                         type="button"
                         className={`${styles.bondOrderButton} ${
-                          isActive
-                            ? styles.bondOrderButtonActive
-                            : ""
+                          isActive ? styles.bondOrderButtonActive : ""
                         }`}
                         onClick={() =>
-                          setSelectedBond(
-                            option.type,
-                            option.order,
-                          )
+                          setSelectedBond(option.type, option.order)
                         }
                       >
                         {option.label}
@@ -1353,12 +1605,7 @@ export default function MoleculeDrawer() {
 
             <span>
               بزرگ‌نمایی:{" "}
-              <strong>
-                {Math.round(
-                  document.viewport.zoom * 100,
-                )}
-                ٪
-              </strong>
+              <strong>{Math.round(document.viewport.zoom * 100)}٪</strong>
             </span>
           </div>
 
@@ -1401,6 +1648,7 @@ export default function MoleculeDrawer() {
               )}
 
               {renderedBonds}
+              {renderedRings}
               {renderedAtoms}
             </svg>
 
@@ -1409,45 +1657,26 @@ export default function MoleculeDrawer() {
                 className={styles.canvasWelcome}
                 style={{ pointerEvents: "none" }}
               >
-                <div className={styles.canvasIcon}>
-                  ⌬
-                </div>
-
-                <h2>
-                  محیط طراحی شیمیایی
-                </h2>
-
-                <p>
-                  یک عنصر را انتخاب کنید و روی
-                  بوم کلیک کنید.
-                </p>
-
+                <div className={styles.canvasIcon}>⌬</div>
+                <h2>محیط طراحی شیمیایی</h2>
+                <p>یک عنصر را انتخاب کنید و روی بوم کلیک کنید.</p>
                 <p className={styles.canvasHint}>
-                  اتم انتخاب‌شده روی شبکه قرار
-                  می‌گیرد.
+                  اتم انتخاب‌شده روی شبکه قرار می‌گیرد.
                 </p>
               </div>
             )}
           </div>
         </section>
 
-        <aside
-          className={styles.propertiesPanel}
-          aria-label="پنل ویژگی‌ها"
-        >
+        <aside className={styles.propertiesPanel} aria-label="پنل ویژگی‌ها">
           <div className={styles.panelHeader}>
             <h2>ویژگی‌ها</h2>
           </div>
 
           {selectedAtom ? (
             <div className={styles.bondProperties}>
-              <span className={styles.propertyBadge}>
-                ATOM
-              </span>
-
-              <h3 className={styles.propertyTitle}>
-                ویژگی‌های اتم
-              </h3>
+              <span className={styles.propertyBadge}>ATOM</span>
+              <h3 className={styles.propertyTitle}>ویژگی‌های اتم</h3>
 
               <div className={styles.propertyRow}>
                 <span>نماد عنصر</span>
@@ -1456,9 +1685,7 @@ export default function MoleculeDrawer() {
 
               <div className={styles.propertyRow}>
                 <span>نام عنصر</span>
-                <strong>
-                  {getElementData(selectedAtom.element).persianName}
-                </strong>
+                <strong>{getElementData(selectedAtom.element).persianName}</strong>
               </div>
 
               <div className={styles.propertyRow}>
@@ -1481,46 +1708,27 @@ export default function MoleculeDrawer() {
             </div>
           ) : selectedBond ? (
             <div className={styles.bondProperties}>
-              <span className={styles.propertyBadge}>
-                BOND
-              </span>
-
-              <h3 className={styles.propertyTitle}>
-                ویژگی‌های پیوند
-              </h3>
+              <span className={styles.propertyBadge}>BOND</span>
+              <h3 className={styles.propertyTitle}>ویژگی‌های پیوند</h3>
 
               <div className={styles.propertyRow}>
                 <span>نوع پیوند</span>
-
-                <strong>
-                  {getBondTypeLabel(
-                    selectedBond.bondType,
-                  )}
-                </strong>
+                <strong>{getBondTypeLabel(selectedBond.bondType)}</strong>
               </div>
 
               <div className={styles.propertyRow}>
                 <span>مرتبه پیوند</span>
-
-                <strong>
-                  {selectedBond.order}
-                </strong>
+                <strong>{selectedBond.order}</strong>
               </div>
 
               <div className={styles.propertyRow}>
                 <span>اتم اول</span>
-
-                <strong>
-                  {selectedStartAtom?.element ?? "-"}
-                </strong>
+                <strong>{selectedStartAtom?.element ?? "-"}</strong>
               </div>
 
               <div className={styles.propertyRow}>
                 <span>اتم دوم</span>
-
-                <strong>
-                  {selectedEndAtom?.element ?? "-"}
-                </strong>
+                <strong>{selectedEndAtom?.element ?? "-"}</strong>
               </div>
 
               <button
@@ -1531,17 +1739,61 @@ export default function MoleculeDrawer() {
                 حذف پیوند
               </button>
             </div>
+          ) : selectedRing ? (
+            <div className={styles.bondProperties}>
+              <span className={styles.propertyBadge}>RING</span>
+
+              <h3 className={styles.propertyTitle}>ویژگی‌های حلقه</h3>
+
+              <div className={styles.propertyRow}>
+                <span>نوع حلقه</span>
+                <strong>{getRingLabel(selectedRing.ringKind)}</strong>
+              </div>
+
+              <div className={styles.propertyRow}>
+                <span>آروماتیک</span>
+                <strong>{selectedRing.aromatic ? "بله" : "خیر"}</strong>
+              </div>
+
+              <div className={styles.propertyRow}>
+                <span>تعداد اتم‌ها</span>
+                <strong>{selectedRing.atomIds.length}</strong>
+              </div>
+
+              <div className={styles.propertyRow}>
+                <span>تعداد پیوندها</span>
+                <strong>{selectedRing.bondIds.length}</strong>
+              </div>
+
+              <div className={styles.propertyRow}>
+                <span>شعاع</span>
+                <strong>{Math.round(selectedRing.radius)}</strong>
+              </div>
+
+              <div className={styles.ringDeleteActions}>
+                <button
+                  type="button"
+                  className={styles.propertyDeleteButton}
+                  onClick={() => deleteRing(selectedRing.id, "simple")}
+                >
+                  حذف ساده حلقه
+                </button>
+
+                <button
+                  type="button"
+                  className={`${styles.propertyDeleteButton} ${styles.propertyDeleteStructureButton}`}
+                  onClick={() => deleteRing(selectedRing.id, "structure")}
+                >
+                  حذف کل ساختار حلقه
+                </button>
+              </div>
+            </div>
           ) : (
             <div className={styles.emptyProperties}>
-              <span className={styles.emptyPropertiesIcon}>
-                ◇
-              </span>
-
+              <span className={styles.emptyPropertiesIcon}>◇</span>
               <p>شیئی انتخاب نشده است</p>
-
               <small>
-                پس از انتخاب اتم، پیوند یا آبجکت،
-                ویژگی‌های آن نمایش داده می‌شود.
+                پس از انتخاب اتم، پیوند یا حلقه، ویژگی‌های آن نمایش داده می‌شود.
               </small>
             </div>
           )}
@@ -1550,10 +1802,7 @@ export default function MoleculeDrawer() {
 
       <footer className={styles.footer}>
         <span>آماده برای طراحی</span>
-
-        <span>
-          {document.objects.length} آبجکت
-        </span>
+        <span>{document.objects.length} آبجکت</span>
       </footer>
     </main>
   );

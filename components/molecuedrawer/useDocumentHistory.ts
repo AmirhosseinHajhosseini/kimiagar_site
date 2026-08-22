@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useReducer,
-} from "react";
+import { useCallback, useReducer } from "react";
 
-type Updater<T> =
-  | T
-  | ((current: T) => T);
+type Updater<T> = T | ((current: T) => T);
 
 interface HistoryState<T> {
   past: T[];
@@ -39,7 +34,7 @@ function historyReducer<T>(
 ): HistoryState<T> {
   switch (action.type) {
     case "UPDATE": {
-      const next =
+      const nextValue =
         typeof action.updater === "function"
           ? (
               action.updater as (
@@ -48,19 +43,15 @@ function historyReducer<T>(
             )(state.present)
           : action.updater;
 
-      if (Object.is(next, state.present)) {
+      if (Object.is(nextValue, state.present)) {
         return state;
       }
 
       return {
-        past: [
-          ...state.past,
-          state.present,
-        ].slice(-MAX_HISTORY_LENGTH),
-
-        present: next,
-
-        // با هر تغییر جدید، Redo قبلی حذف می‌شود
+        past: [...state.past, state.present].slice(
+          -MAX_HISTORY_LENGTH,
+        ),
+        present: nextValue,
         future: [],
       };
     }
@@ -70,12 +61,12 @@ function historyReducer<T>(
         return state;
       }
 
-      const previous =
+      const previousValue =
         state.past[state.past.length - 1];
 
       return {
         past: state.past.slice(0, -1),
-        present: previous,
+        present: previousValue,
         future: [
           state.present,
           ...state.future,
@@ -88,28 +79,28 @@ function historyReducer<T>(
         return state;
       }
 
-      const next = state.future[0];
+      const nextValue = state.future[0];
 
       return {
-        past: [
-          ...state.past,
-          state.present,
-        ].slice(-MAX_HISTORY_LENGTH),
-
-        present: next,
+        past: [...state.past, state.present].slice(
+          -MAX_HISTORY_LENGTH,
+        ),
+        present: nextValue,
         future: state.future.slice(1),
       };
     }
 
-    case "RESET":
+    case "RESET": {
       return {
         past: [],
         present: action.value,
         future: [],
       };
+    }
 
-    default:
+    default: {
       return state;
+    }
   }
 }
 
@@ -143,15 +134,12 @@ export function useDocumentHistory<T>(
     dispatch({ type: "REDO" });
   }, []);
 
-  const resetHistory = useCallback(
-    (value: T) => {
-      dispatch({
-        type: "RESET",
-        value,
-      });
-    },
-    [],
-  );
+  const resetHistory = useCallback((value: T) => {
+    dispatch({
+      type: "RESET",
+      value,
+    });
+  }, []);
 
   return {
     document: state.present,

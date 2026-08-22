@@ -4,13 +4,13 @@ import type { InteractionMode } from "./types";
 import styles from "./MoleculeDrawer.module.css";
 
 interface ToolbarItem {
-  mode: InteractionMode;
-  label: string;
-  icon: string;
-  shortcut: string;
+  readonly mode: InteractionMode;
+  readonly label: string;
+  readonly icon: string;
+  readonly shortcut: string;
 }
 
-const toolbarItems: readonly ToolbarItem[] = [
+const TOOLBAR_ITEMS: readonly ToolbarItem[] = [
   {
     mode: "select",
     label: "انتخاب",
@@ -48,6 +48,18 @@ const toolbarItems: readonly ToolbarItem[] = [
     shortcut: "E",
   },
   {
+    mode: "add-charge",
+    label: "بار الکتریکی",
+    icon: "±",
+    shortcut: "Q",
+  },
+  {
+    mode: "add-electron",
+    label: "الکترون",
+    icon: "••",
+    shortcut: "L",
+  },
+  {
     mode: "add-text",
     label: "متن",
     icon: "T",
@@ -59,15 +71,30 @@ const toolbarItems: readonly ToolbarItem[] = [
     icon: "✎",
     shortcut: "P",
   },
+  {
+    mode: "erase",
+    label: "پاک‌کن",
+    icon: "⌫",
+    shortcut: "X",
+  },
+  {
+    mode: "pan",
+    label: "جابه‌جایی",
+    icon: "✋",
+    shortcut: "H",
+  },
 ];
 
 interface MoleculeToolbarProps {
   activeMode: InteractionMode;
   showGrid: boolean;
+  snapToGrid?: boolean;
   canUndo: boolean;
   canRedo: boolean;
   onModeChange: (mode: InteractionMode) => void;
   onToggleGrid: () => void;
+  onToggleSnapToGrid?: () => void;
+  onClearCanvas?: () => void;
   onUndo: () => void;
   onRedo: () => void;
 }
@@ -75,65 +102,82 @@ interface MoleculeToolbarProps {
 export default function MoleculeToolbar({
   activeMode,
   showGrid,
+  snapToGrid = false,
   canUndo,
   canRedo,
   onModeChange,
   onToggleGrid,
+  onToggleSnapToGrid,
+  onClearCanvas,
   onUndo,
   onRedo,
 }: MoleculeToolbarProps) {
   return (
     <nav
       className={styles.toolbar}
-      aria-label="نوار ابزار Molecuedrawer"
+      aria-label="نوار ابزار Molecule Drawer"
+      dir="rtl"
     >
       <div className={styles.toolbarGroup}>
-        {toolbarItems.map((item) => {
-          const isActive =
-            activeMode === item.mode;
+        {TOOLBAR_ITEMS.map((item) => {
+          const isActive = activeMode === item.mode;
 
           return (
             <button
               key={item.mode}
               type="button"
               className={`${styles.toolButton} ${
-                isActive
-                  ? styles.toolButtonActive
-                  : ""
+                isActive ? styles.toolButtonActive : ""
               }`}
-              onClick={() =>
-                onModeChange(item.mode)
-              }
               aria-pressed={isActive}
               aria-label={item.label}
               title={`${item.label} — میانبر ${item.shortcut}`}
+              onClick={() => onModeChange(item.mode)}
             >
-              <span className={styles.toolIcon}>
+              <span className={styles.toolIcon} aria-hidden="true">
                 {item.icon}
               </span>
-
-              <span className={styles.toolLabel}>
-                {item.label}
-              </span>
-
+              <span className={styles.toolLabel}>{item.label}</span>
               <kbd>{item.shortcut}</kbd>
             </button>
           );
         })}
       </div>
 
-      <div className={styles.toolbarDivider} />
+      <div className={styles.toolbarDivider} aria-hidden="true" />
 
       <div className={styles.toolbarGroup}>
         <button
           type="button"
-          className={styles.secondaryButton}
+          className={`${styles.secondaryButton} ${
+            showGrid ? styles.secondaryButtonActive : ""
+          }`}
           onClick={onToggleGrid}
           aria-pressed={showGrid}
-          title="نمایش یا مخفی کردن شبکه"
+          aria-label={showGrid ? "مخفی کردن شبکه" : "نمایش شبکه"}
+          title={showGrid ? "مخفی کردن شبکه" : "نمایش شبکه"}
         >
-          <span>▦</span>
+          <span aria-hidden="true">▦</span>
           شبکه
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.secondaryButton} ${
+            snapToGrid ? styles.secondaryButtonActive : ""
+          }`}
+          onClick={onToggleSnapToGrid}
+          disabled={!onToggleSnapToGrid}
+          aria-pressed={snapToGrid}
+          aria-label="چسبیدن به شبکه"
+          title={
+            snapToGrid
+              ? "غیرفعال کردن چسبیدن به شبکه"
+              : "فعال کردن چسبیدن به شبکه"
+          }
+        >
+          <span aria-hidden="true">⊞</span>
+          چسبش
         </button>
 
         <button
@@ -141,10 +185,11 @@ export default function MoleculeToolbar({
           className={styles.secondaryButton}
           onClick={onUndo}
           disabled={!canUndo}
-          title="بازگشت آخرین تغییر"
           aria-label="بازگشت"
+          title="بازگشت آخرین تغییر"
         >
-          ↶ بازگشت
+          <span aria-hidden="true">↶</span>
+          بازگشت
         </button>
 
         <button
@@ -152,10 +197,23 @@ export default function MoleculeToolbar({
           className={styles.secondaryButton}
           onClick={onRedo}
           disabled={!canRedo}
-          title="انجام دوباره آخرین تغییر"
           aria-label="انجام دوباره"
+          title="انجام دوباره آخرین تغییر"
         >
-          ↷ دوباره
+          <span aria-hidden="true">↷</span>
+          دوباره
+        </button>
+
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          onClick={onClearCanvas}
+          disabled={!onClearCanvas}
+          aria-label="پاک‌سازی کامل بوم"
+          title="پاک‌سازی کامل بوم"
+        >
+          <span aria-hidden="true">⟳</span>
+          پاک‌سازی
         </button>
       </div>
     </nav>

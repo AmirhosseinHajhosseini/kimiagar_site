@@ -14,7 +14,9 @@ export interface ElementData {
   isHalogen: boolean;
 }
 
-export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
+export const ELEMENT_DATA: Readonly<
+  Record<ElementSymbol, ElementData>
+> = {
   H: {
     symbol: "H",
     name: "Hydrogen",
@@ -28,6 +30,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: false,
   },
+
   C: {
     symbol: "C",
     name: "Carbon",
@@ -41,6 +44,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: false,
   },
+
   N: {
     symbol: "N",
     name: "Nitrogen",
@@ -54,6 +58,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: false,
   },
+
   O: {
     symbol: "O",
     name: "Oxygen",
@@ -67,6 +72,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: false,
   },
+
   F: {
     symbol: "F",
     name: "Fluorine",
@@ -80,6 +86,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: true,
   },
+
   P: {
     symbol: "P",
     name: "Phosphorus",
@@ -93,6 +100,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: false,
   },
+
   S: {
     symbol: "S",
     name: "Sulfur",
@@ -106,6 +114,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: false,
   },
+
   Cl: {
     symbol: "Cl",
     name: "Chlorine",
@@ -119,6 +128,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: true,
   },
+
   Br: {
     symbol: "Br",
     name: "Bromine",
@@ -132,6 +142,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: true,
   },
+
   I: {
     symbol: "I",
     name: "Iodine",
@@ -145,6 +156,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: true,
   },
+
   B: {
     symbol: "B",
     name: "Boron",
@@ -158,6 +170,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: false,
     isHalogen: false,
   },
+
   Si: {
     symbol: "Si",
     name: "Silicon",
@@ -167,16 +180,17 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     defaultColor: "#F59E0B",
     defaultTextColor: "#111827",
     commonValences: [4],
-    electronegativity: 1.90,
+    electronegativity: 1.9,
     isMetal: false,
     isHalogen: false,
   },
+
   Na: {
     symbol: "Na",
     name: "Sodium",
     persianName: "سدیم",
     atomicNumber: 11,
-    atomicMass: 22.990,
+    atomicMass: 22.99,
     defaultColor: "#64748B",
     defaultTextColor: "#FFFFFF",
     commonValences: [1],
@@ -184,6 +198,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: true,
     isHalogen: false,
   },
+
   K: {
     symbol: "K",
     name: "Potassium",
@@ -197,6 +212,7 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: true,
     isHalogen: false,
   },
+
   Mg: {
     symbol: "Mg",
     name: "Magnesium",
@@ -210,19 +226,21 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
     isMetal: true,
     isHalogen: false,
   },
+
   Ca: {
     symbol: "Ca",
     name: "Calcium",
-    persianName: "کلسیم",
+    persianName: "ک defaultColor",
     atomicNumber: 20,
     atomicMass: 40.078,
     defaultColor: "#64748B",
     defaultTextColor: "#FFFFFF",
     commonValences: [2],
-    electronegativity: 1.00,
+    electronegativity: 1,
     isMetal: true,
     isHalogen: false,
   },
+
   Fe: {
     symbol: "Fe",
     name: "Iron",
@@ -238,25 +256,28 @@ export const ELEMENT_DATA: Readonly<Record<string, ElementData>> = {
   },
 };
 
+const FALLBACK_ELEMENT_DATA: Omit<
+  ElementData,
+  "symbol"
+> = {
+  name: "Unknown",
+  persianName: "ناشناخته",
+  atomicNumber: 0,
+  atomicMass: 0,
+  defaultColor: "#64748B",
+  defaultTextColor: "#FFFFFF",
+  commonValences: [],
+  isMetal: false,
+  isHalogen: false,
+};
+
 export const getElementData = (
   symbol: ElementSymbol,
 ): ElementData => {
-  const knownElement = ELEMENT_DATA[symbol];
-
-  if (knownElement) {
-    return knownElement;
-  }
-
-  return {
-    symbol,
-    name: symbol,
-    persianName: symbol,
-    atomicNumber: 0,
-    atomicMass: 0,
-    defaultColor: "#64748B",
-    defaultTextColor: "#FFFFFF",
-    commonValences: [],
-    isMetal: false,
-    isHalogen: false,
-  };
+  return (
+    ELEMENT_DATA[symbol] ?? {
+      symbol,
+      ...FALLBACK_ELEMENT_DATA,
+    }
+  );
 };
