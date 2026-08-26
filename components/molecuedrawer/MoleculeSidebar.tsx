@@ -23,7 +23,7 @@ export type ReactionOperatorKind =
   | "bracket"
   | "equilibrium-constant";
 
-interface MoleculeSidebarProps {
+export interface MoleculeSidebarProps {
   document: MechanismDocument;
   onModeChange: (mode: InteractionMode) => void;
   onElementChange: (element: ElementSymbol) => void;
@@ -32,6 +32,7 @@ interface MoleculeSidebarProps {
   onChargeChange: (charge: ChargeKind) => void;
   onElectronChange: (electronDisplay: ElectronDisplay) => void;
   onArrowChange: (arrowType: ArrowType) => void;
+  onFunctionalGroupChange: (groupId: string) => void;
   onOperatorSelect?: (operator: ReactionOperatorKind) => void;
   onToggleGrid: () => void;
   onToggleSnap: () => void;
@@ -125,6 +126,7 @@ const REACTION_OPERATORS: ReadonlyArray<{
   { id: "heat", label: "حرارت / گرما", symbol: "Δ" },
   { id: "light", label: "شرایط نوری / تابش", symbol: "hν" },
   { id: "bracket", label: "براکت / حالت گذار", symbol: "[ ]‡" },
+  { id: "equilibrium-constant", label: "ثابت تعادل", symbol: "K" },
 ];
 
 const ARROW_TYPES: ReadonlyArray<{
@@ -187,6 +189,7 @@ export default function MoleculeSidebar({
   onChargeChange,
   onElectronChange,
   onArrowChange,
+  onFunctionalGroupChange,
   onOperatorSelect,
   onToggleGrid,
   onToggleSnap,
@@ -198,10 +201,7 @@ export default function MoleculeSidebar({
   const handleModeChange = (
     mode: Extract<InteractionMode, "select" | "pan" | "brush" | "add-text">,
   ) => {
-    setPaletteSelection({
-      type: "tool",
-      id: mode,
-    });
+    setPaletteSelection({ type: "tool", id: mode });
     onModeChange(mode);
   };
 
@@ -211,58 +211,38 @@ export default function MoleculeSidebar({
   };
 
   const handleBondChange = (bondType: BondType, bondOrder: BondOrder) => {
-    setPaletteSelection({
-      type: "bond",
-      id: bondType,
-    });
+    setPaletteSelection({ type: "bond", id: bondType });
     onBondChange(bondType, bondOrder);
   };
 
   const handleRingChange = (ringKind: RingKind) => {
-    setPaletteSelection({
-      type: "ring",
-      id: ringKind,
-    });
+    setPaletteSelection({ type: "ring", id: ringKind });
     onRingChange(ringKind);
   };
 
   const handleFunctionalGroupChange = (groupId: string) => {
-    setPaletteSelection({
-      type: "functional-group",
-      id: groupId,
-    });
-    onModeChange("add-functional-group");
+    setPaletteSelection({ type: "functional-group", id: groupId });
+    onModeChange("add-functional-group" as InteractionMode);
+    onFunctionalGroupChange(groupId);
   };
 
   const handleChargeChange = (charge: ChargeKind) => {
-    setPaletteSelection({
-      type: "charge",
-      id: charge,
-    });
+    setPaletteSelection({ type: "charge", id: charge });
     onChargeChange(charge);
   };
 
   const handleElectronChange = (electron: ElectronDisplay) => {
-    setPaletteSelection({
-      type: "electron",
-      id: electron,
-    });
+    setPaletteSelection({ type: "electron", id: electron });
     onElectronChange(electron);
   };
 
   const handleArrowChange = (arrowType: ArrowType) => {
-    setPaletteSelection({
-      type: "arrow",
-      id: arrowType,
-    });
+    setPaletteSelection({ type: "arrow", id: arrowType });
     onArrowChange(arrowType);
   };
 
   const handleOperatorChange = (operator: ReactionOperatorKind) => {
-    setPaletteSelection({
-      type: "operator",
-      id: operator,
-    });
+    setPaletteSelection({ type: "operator", id: operator });
     if (onOperatorSelect) {
       onOperatorSelect(operator);
     } else {
@@ -270,11 +250,8 @@ export default function MoleculeSidebar({
     }
   };
 
-  
-
   return (
     <aside className={styles.leftSidebar} aria-label="پنل ابزارهای شیمیایی">
-      {/* ۱. اتم‌ها */}
       <SidebarSection title="اتم‌ها">
         <div className={styles.elementGrid}>
           {ELEMENTS.map((element) => {
@@ -313,76 +290,33 @@ export default function MoleculeSidebar({
         </div>
       </SidebarSection>
 
-      {/* ۲. ابزارهای عمومی */}
       <SidebarSection title="ابزارهای عمومی">
-        <div className={styles.toolGrid}>
-          {GENERAL_TOOLS.map((tool) => {
-            const isActive = document.tool.mode === tool.id;
+  <div className={styles.toolColumn}>
+    {GENERAL_TOOLS.map((tool) => {
+      const isActive = document.tool.mode === tool.id;
 
-            return (
-              <button
-                key={tool.id}
-                type="button"
-                className={`${styles.toolButton} ${
-                  isActive ? styles.toolButtonActive : ""
-                }`}
-                onClick={() => handleModeChange(tool.id)}
-                title={tool.label}
-                aria-label={tool.label}
-                aria-pressed={isActive}
-              >
-                <span className={styles.toolIcon} aria-hidden="true">
-                  {tool.icon}
-                </span>
-                <span className={styles.toolLabel}>{tool.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
+      return (
         <button
+          key={tool.id}
           type="button"
-          className={styles.sidebarAction}
-          onClick={onClearSelection}
-          style={{ marginTop: "0.75rem" }}
+          className={`${styles.elementButton} ${
+            isActive ? styles.elementButtonActive : ""
+          } ${styles.toolColumnButton}`}
+          onClick={() => handleModeChange(tool.id)}
+          title={tool.label}
+          aria-label={tool.label}
+          aria-pressed={isActive}
         >
-          <span aria-hidden="true">×</span>
-          لغو انتخاب
+          <span className={styles.elementSymbol} aria-hidden="true">
+            {tool.icon}
+          </span>
+          <span className={styles.elementName}>{tool.label}</span>
         </button>
-      </SidebarSection>
+      );
+    })}
+  </div>
+</SidebarSection>
 
-      {/* ۳. پیوندها */}
-      <SidebarSection title="پیوندها">
-        <div className={styles.elementGrid}>
-          {BOND_TYPES.map((bond) => {
-            const isActive =
-              document.tool.mode === "add-bond" &&
-              document.tool.selectedBondType === bond.id &&
-              document.tool.selectedBondOrder === bond.order;
-
-            return (
-              <button
-                key={`${bond.id}-${bond.order}`}
-                type="button"
-                className={`${styles.elementButton} ${
-                  isActive ? styles.elementButtonActive : ""
-                }`}
-                onClick={() => handleBondChange(bond.id, bond.order)}
-                title={bond.label}
-                aria-label={bond.label}
-                aria-pressed={isActive}
-              >
-                <span className={styles.elementSymbol} aria-hidden="true">
-                  {bond.symbol}
-                </span>
-                <span className={styles.elementName}>{bond.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </SidebarSection>
-
-      {/* ۴. حلقه‌ها */}
       <SidebarSection title="حلقه‌ها">
         <div className={styles.elementGrid}>
           {RING_TYPES.map((ring) => {
@@ -412,7 +346,6 @@ export default function MoleculeSidebar({
         </div>
       </SidebarSection>
 
-      {/* ۵. گروه‌های عاملی */}
       <SidebarSection title="گروه‌های عاملی">
         <div className={styles.elementGrid}>
           {FUNCTIONAL_GROUPS.map((group) => {
@@ -443,7 +376,6 @@ export default function MoleculeSidebar({
         </div>
       </SidebarSection>
 
-      {/* ۶. بارهای الکتریکی */}
       <SidebarSection title="بارهای الکتریکی">
         <div className={styles.elementGrid}>
           {CHARGES.map((charge) => {
@@ -482,7 +414,6 @@ export default function MoleculeSidebar({
         </div>
       </SidebarSection>
 
-      {/* ۷. الکترون‌ها */}
       <SidebarSection title="الکترون‌ها">
         <div className={styles.elementGrid}>
           {ELECTRONS.map((electron) => {
@@ -512,37 +443,35 @@ export default function MoleculeSidebar({
         </div>
       </SidebarSection>
 
-      {/* ۸. فلش‌ها و مکانیسم */}
-      <SidebarSection title="فلش‌ها و مکانیسم">
-        <div className={styles.arrowGrid}>
-          {ARROW_TYPES.map((arrow) => {
-            const isActive =
-              document.tool.mode === "add-arrow" &&
-              document.tool.selectedArrowType === arrow.id;
+    <SidebarSection title="فلش‌ها و مکانیسم">
+  <div className={styles.arrowColumn}>
+    {ARROW_TYPES.map((arrow) => {
+      const isActive =
+        document.tool.mode === "add-arrow" &&
+        document.tool.selectedArrowType === arrow.id;
 
-            return (
-              <button
-                key={arrow.id}
-                type="button"
-                className={`${styles.elementButton} ${
-                  isActive ? styles.elementButtonActive : ""
-                }`}
-                onClick={() => handleArrowChange(arrow.id)}
-                title={arrow.label}
-                aria-label={arrow.label}
-                aria-pressed={isActive}
-              >
-                <span className={styles.arrowSymbol} aria-hidden="true">
-                  {arrow.symbol}
-                </span>
-                <span className={styles.elementName}>{arrow.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </SidebarSection>
+      return (
+        <button
+          key={arrow.id}
+          type="button"
+          className={`${styles.elementButton} ${
+            isActive ? styles.elementButtonActive : ""
+          } ${styles.arrowColumnButton}`}
+          onClick={() => handleArrowChange(arrow.id)}
+          title={arrow.label}
+          aria-label={arrow.label}
+          aria-pressed={isActive}
+        >
+          <span className={styles.elementSymbol} aria-hidden="true">
+            {arrow.symbol}
+          </span>
+          <span className={styles.elementName}>{arrow.label}</span>
+        </button>
+      );
+    })}
+  </div>
+</SidebarSection>
 
-      {/* ۹. عملگرهای واکنش */}
       <SidebarSection title="عملگرهای واکنش">
         <div className={styles.elementGrid}>
           {REACTION_OPERATORS.map((op) => {
@@ -572,7 +501,6 @@ export default function MoleculeSidebar({
         </div>
       </SidebarSection>
 
-      {/* ۱۰. تنظیمات نمایش */}
       <SidebarSection title="نمایش">
         <label className={styles.switchRow}>
           <span>شبکه</span>
@@ -595,7 +523,6 @@ export default function MoleculeSidebar({
         </label>
       </SidebarSection>
 
-      {/* ۱۱. وضعیت ابزار */}
       <SidebarSection title="وضعیت">
         <div className={styles.infoCard}>
           <span>ابزار فعال</span>
@@ -606,11 +533,9 @@ export default function MoleculeSidebar({
           <div className={styles.infoCard}>
             <span>حلقه انتخاب‌شده</span>
             <strong>
-              {
-                RING_TYPES.find(
-                  (ring) => ring.id === document.tool.selectedRingKind,
-                )?.label ?? document.tool.selectedRingKind
-              }
+              {RING_TYPES.find(
+                (ring) => ring.id === document.tool.selectedRingKind,
+              )?.label ?? document.tool.selectedRingKind}
             </strong>
           </div>
         )}
@@ -619,11 +544,9 @@ export default function MoleculeSidebar({
           <div className={styles.infoCard}>
             <span>بار انتخاب‌شده</span>
             <strong>
-              {
-                CHARGES.find(
-                  (charge) => charge.id === document.tool.selectedCharge,
-                )?.label ?? document.tool.selectedCharge
-              }
+              {CHARGES.find(
+                (charge) => charge.id === document.tool.selectedCharge,
+              )?.label ?? document.tool.selectedCharge}
             </strong>
           </div>
         )}
@@ -632,11 +555,9 @@ export default function MoleculeSidebar({
           <div className={styles.infoCard}>
             <span>فلش انتخاب‌شده</span>
             <strong>
-              {
-                ARROW_TYPES.find(
-                  (arrow) => arrow.id === document.tool.selectedArrowType,
-                )?.label ?? document.tool.selectedArrowType
-              }
+              {ARROW_TYPES.find(
+                (arrow) => arrow.id === document.tool.selectedArrowType,
+              )?.label ?? document.tool.selectedArrowType}
             </strong>
           </div>
         )}
@@ -649,3 +570,4 @@ export default function MoleculeSidebar({
     </aside>
   );
 }
+

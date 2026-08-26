@@ -1,6 +1,6 @@
 "use client";
 
-import type { InteractionMode } from "./types";
+import type { InteractionMode, ThemeState } from "./types";
 import styles from "./MoleculeDrawer.module.css";
 
 interface ToolbarItem {
@@ -11,78 +11,18 @@ interface ToolbarItem {
 }
 
 const TOOLBAR_ITEMS: readonly ToolbarItem[] = [
-  {
-    mode: "select",
-    label: "انتخاب",
-    icon: "⌁",
-    shortcut: "V",
-  },
-  {
-    mode: "add-atom",
-    label: "اتم",
-    icon: "C",
-    shortcut: "A",
-  },
-  {
-    mode: "add-bond",
-    label: "پیوند",
-    icon: "／",
-    shortcut: "B",
-  },
-  {
-    mode: "add-ring",
-    label: "حلقه",
-    icon: "⬡",
-    shortcut: "R",
-  },
-  {
-    mode: "add-functional-group",
-    label: "گروه عاملی",
-    icon: "OH",
-    shortcut: "G",
-  },
-  {
-    mode: "add-arrow",
-    label: "فلش مکانیزمی",
-    icon: "↝",
-    shortcut: "E",
-  },
-  {
-    mode: "add-charge",
-    label: "بار الکتریکی",
-    icon: "±",
-    shortcut: "Q",
-  },
-  {
-    mode: "add-electron",
-    label: "الکترون",
-    icon: "••",
-    shortcut: "L",
-  },
-  {
-    mode: "add-text",
-    label: "متن",
-    icon: "T",
-    shortcut: "T",
-  },
-  {
-    mode: "brush",
-    label: "قلم‌مو",
-    icon: "✎",
-    shortcut: "P",
-  },
-  {
-    mode: "erase",
-    label: "پاک‌کن",
-    icon: "⌫",
-    shortcut: "X",
-  },
-  {
-    mode: "pan",
-    label: "جابه‌جایی",
-    icon: "✋",
-    shortcut: "H",
-  },
+  { mode: "select", label: "انتخاب", icon: "⌁", shortcut: "V" },
+  { mode: "add-atom", label: "اتم", icon: "C", shortcut: "A" },
+  { mode: "add-bond", label: "پیوند", icon: "／", shortcut: "B" },
+  { mode: "add-ring", label: "حلقه", icon: "⬡", shortcut: "R" },
+  { mode: "add-functional-group", label: "گروه عاملی", icon: "OH", shortcut: "G" },
+  { mode: "add-arrow", label: "فلش مکانیزمی", icon: "↝", shortcut: "E" },
+  { mode: "add-charge", label: "بار الکتریکی", icon: "±", shortcut: "Q" },
+  { mode: "add-electron", label: "الکترون", icon: "••", shortcut: "L" },
+  { mode: "add-text", label: "متن", icon: "T", shortcut: "T" },
+  { mode: "brush", label: "قلم‌مو", icon: "✎", shortcut: "P" },
+  { mode: "erase", label: "پاک‌کن", icon: "⌫", shortcut: "X" },
+  { mode: "pan", label: "جابه‌جایی", icon: "✋", shortcut: "H" },
 ];
 
 interface MoleculeToolbarProps {
@@ -91,10 +31,12 @@ interface MoleculeToolbarProps {
   snapToGrid?: boolean;
   canUndo: boolean;
   canRedo: boolean;
+  themeMode: ThemeState["mode"]; // اضافه شده
   onModeChange: (mode: InteractionMode) => void;
   onToggleGrid: () => void;
   onToggleSnapToGrid?: () => void;
-  onClearCanvas?: () => void;
+  onClearCanvas: () => void; // ضروری شد
+  onToggleTheme: () => void; // اضافه شده
   onUndo: () => void;
   onRedo: () => void;
 }
@@ -105,10 +47,12 @@ export default function MoleculeToolbar({
   snapToGrid = false,
   canUndo,
   canRedo,
+  themeMode,
   onModeChange,
   onToggleGrid,
   onToggleSnapToGrid,
   onClearCanvas,
+  onToggleTheme,
   onUndo,
   onRedo,
 }: MoleculeToolbarProps) {
@@ -169,15 +113,21 @@ export default function MoleculeToolbar({
           onClick={onToggleSnapToGrid}
           disabled={!onToggleSnapToGrid}
           aria-pressed={snapToGrid}
-          aria-label="چسبیدن به شبکه"
-          title={
-            snapToGrid
-              ? "غیرفعال کردن چسبیدن به شبکه"
-              : "فعال کردن چسبیدن به شبکه"
-          }
+          title={snapToGrid ? "غیرفعال کردن چسبیدن به شبکه" : "فعال کردن چسبیدن به شبکه"}
         >
           <span aria-hidden="true">⊞</span>
           چسبش
+        </button>
+
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          onClick={onToggleTheme}
+          aria-label="تغییر تم"
+          title="تغییر حالت تم (روشن/تاریک)"
+        >
+          <span aria-hidden="true">{themeMode === "light" ? "🌙" : "☀️"}</span>
+          {themeMode === "light" ? "تم تاریک" : "تم روشن"}
         </button>
 
         <button
@@ -206,9 +156,8 @@ export default function MoleculeToolbar({
 
         <button
           type="button"
-          className={styles.secondaryButton}
+          className={`${styles.secondaryButton} ${styles.dangerButton}`}
           onClick={onClearCanvas}
-          disabled={!onClearCanvas}
           aria-label="پاک‌سازی کامل بوم"
           title="پاک‌سازی کامل بوم"
         >

@@ -136,7 +136,7 @@ export interface Atom extends DrawableBase {
   radicalColor: string;
   lonePairColor: string;
 
-  attachedBondIds: ID[];
+ attachedBondIds: ID[];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -473,6 +473,8 @@ export interface ToolState {
 
   selectedArrowType: ArrowType;
   selectedBrushPreset: BrushPreset;
+  selectedFunctionalGroup?: string;
+
 }
 
 /* -------------------------------------------------------------------------- */
