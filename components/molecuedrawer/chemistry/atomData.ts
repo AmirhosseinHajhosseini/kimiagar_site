@@ -228,18 +228,19 @@ export const ELEMENT_DATA: Readonly<
   },
 
   Ca: {
-    symbol: "Ca",
-    name: "Calcium",
-    persianName: "ک defaultColor",
-    atomicNumber: 20,
-    atomicMass: 40.078,
-    defaultColor: "#64748B",
-    defaultTextColor: "#FFFFFF",
-    commonValences: [2],
-    electronegativity: 1,
-    isMetal: true,
-    isHalogen: false,
-  },
+  symbol: "Ca",
+  name: "Calcium",
+  persianName: "کلسیم",
+  atomicNumber: 20,
+  atomicMass: 40.078,
+  defaultColor: "#22C55E",
+  defaultTextColor: "#FFFFFF",
+  commonValences: [2],
+  electronegativity: 1,
+  isMetal: true,
+  isHalogen: false,
+},
+
 
   Fe: {
     symbol: "Fe",

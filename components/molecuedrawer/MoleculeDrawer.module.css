@@ -1,3 +1,7 @@
+/* ==========================================================================
+   MoleculeDrawer - Base Application Styles & CSS Variables
+   ========================================================================== */
+
 .application {
   --md-canvas-background: #f8fafc;
   --md-grid-color: #e2e8f0;
@@ -16,7 +20,11 @@
 
   --md-title-color: #db2777;
   --md-bond-color: #123b5d;
-  --md-arrow-color: #0e7490;
+
+  /* Arrow colors - light theme */
+  --md-arrow-color: #b91c1c;
+  --md-arrow-selected-color: #dc2626;
+
   --md-selection-color: #d4af37;
   --md-focus-color: #0284c7;
   --md-danger-color: #dc2626;
@@ -32,7 +40,6 @@
 
   display: flex;
   flex-direction: column;
-
   overflow: hidden;
 
   color: var(--md-text-primary);
@@ -49,9 +56,14 @@
     color 180ms ease;
 }
 
-/* Dark theme */
+/* Light Theme Mode */
+.application.light {
+  color-scheme: light;
+}
 
-.application.dark {
+/* Dark Theme Mode */
+.application.dark,
+.application[data-theme="dark"] {
   --md-canvas-background: #0f172a;
   --md-grid-color: #1e293b;
   --md-grid-strong-color: #334155;
@@ -69,7 +81,11 @@
 
   --md-title-color: #f472b6;
   --md-bond-color: #93c5fd;
-  --md-arrow-color: #67e8f9;
+
+  /* Arrow colors - dark theme */
+  --md-arrow-color: #ff4d4f;
+  --md-arrow-selected-color: #ff8787;
+
   --md-selection-color: #facc15;
   --md-focus-color: #38bdf8;
 
@@ -80,18 +96,25 @@
   color-scheme: dark;
 }
 
-.application.light {
-  color-scheme: light;
+/* Loading State */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.1rem;
+  color: var(--md-text-secondary);
 }
 
-/* Header */
+/* ==========================================================================
+   Header Component
+   ========================================================================== */
 
 .header {
   position: relative;
   z-index: 10;
-
   flex: 0 0 auto;
-
   min-height: 72px;
 
   display: grid;
@@ -100,16 +123,46 @@
   gap: 20px;
 
   padding: 12px 24px;
-
   border-bottom: 1px solid var(--md-border-color);
 
   background: var(--md-surface-background);
   box-shadow: var(--md-shadow-sm);
 }
 
+.headerTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerTitle h1 {
+  margin: 0;
+  color: var(--md-title-color);
+  direction: ltr;
+  font-family: "Times New Roman", Times, serif;
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.documentStatus {
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--md-surface-elevated);
+  color: var(--md-text-muted);
+  font-size: 0.75rem;
+  border: 1px solid var(--md-border-color);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .headerSide {
   min-width: 0;
-
   display: flex;
   align-items: center;
   gap: 10px;
@@ -123,22 +176,14 @@
   width: 9px;
   height: 9px;
   flex: 0 0 auto;
-
   border-radius: 50%;
-
   background: var(--md-success-color);
-  box-shadow: 0 0 0 4px color-mix(
-    in srgb,
-    var(--md-success-color) 16%,
-    transparent
-  );
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--md-success-color) 16%, transparent);
 }
 
 .statusText {
   overflow: hidden;
-
   color: var(--md-text-muted);
-
   font-size: 0.8rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -146,9 +191,7 @@
 
 .title {
   margin: 0;
-
   color: var(--md-title-color);
-
   direction: ltr;
   font-family: "Times New Roman", Times, serif;
   font-size: clamp(1.7rem, 3vw, 2.4rem);
@@ -157,7 +200,9 @@
   text-align: center;
 }
 
-/* Shared buttons */
+/* ==========================================================================
+   Buttons & Shared Actions
+   ========================================================================== */
 
 .headerButton,
 .secondaryButton,
@@ -169,7 +214,6 @@
   border: 1px solid transparent;
   cursor: pointer;
   font: inherit;
-
   transition:
     background-color 150ms ease,
     border-color 150ms ease,
@@ -192,32 +236,44 @@
 
 .headerButton {
   min-height: 36px;
-
   padding: 6px 12px;
-
   border-color: var(--md-border-color);
   border-radius: 8px;
-
   color: var(--md-text-secondary);
   background: var(--md-surface-elevated);
-
   font-size: 0.78rem;
 }
 
-.headerButton:hover {
+.headerButton:hover:not(:disabled) {
   border-color: var(--md-focus-color);
   color: var(--md-focus-color);
   background: var(--md-surface-hover);
 }
 
-/* Toolbar */
+.headerButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dangerButton {
+  color: var(--md-danger-color);
+  border-color: color-mix(in srgb, var(--md-danger-color) 40%, transparent);
+}
+
+.dangerButton:hover:not(:disabled) {
+  background: var(--md-danger-color);
+  color: #ffffff;
+  border-color: var(--md-danger-color);
+}
+
+/* ==========================================================================
+   Toolbar Component
+   ========================================================================== */
 
 .toolbar {
   position: relative;
   z-index: 9;
-
   flex: 0 0 auto;
-
   min-height: 76px;
 
   display: flex;
@@ -226,9 +282,7 @@
   gap: 12px;
 
   padding: 10px 18px;
-
   border-bottom: 1px solid var(--md-border-color);
-
   background: var(--md-surface-background);
 
   overflow-x: auto;
@@ -246,15 +300,12 @@
 .toolbarDivider {
   width: 1px;
   align-self: stretch;
-
   margin: 4px;
-
   background: var(--md-border-color);
 }
 
 .toolButton {
   position: relative;
-
   min-width: 78px;
   min-height: 56px;
 
@@ -265,13 +316,10 @@
   gap: 3px;
 
   padding: 5px 8px;
-
   border-color: var(--md-border-color);
   border-radius: 10px;
-
   color: var(--md-text-secondary);
   background: var(--md-surface-elevated);
-
   box-shadow: var(--md-shadow-sm);
 }
 
@@ -288,29 +336,20 @@
 
 .toolButtonActive {
   border-color: var(--md-selection-color);
-
   color: var(--md-text-primary);
-
   background: color-mix(
     in srgb,
     var(--md-selection-color) 22%,
     var(--md-surface-elevated)
   );
-
   box-shadow:
-    0 0 0 2px color-mix(
-      in srgb,
-      var(--md-selection-color) 30%,
-      transparent
-    ),
+    0 0 0 2px color-mix(in srgb, var(--md-selection-color) 30%, transparent),
     var(--md-shadow-sm);
 }
 
 .toolIcon {
   min-height: 22px;
-
   color: var(--md-bond-color);
-
   direction: ltr;
   font-family: "Times New Roman", Times, serif;
   font-size: 1.35rem;
@@ -326,15 +365,11 @@
   position: absolute;
   top: 4px;
   left: 5px;
-
   padding: 1px 4px;
-
   border: 1px solid var(--md-border-color);
   border-radius: 4px;
-
   color: var(--md-text-muted);
   background: var(--md-surface-background);
-
   direction: ltr;
   font-family: Arial, sans-serif;
   font-size: 0.58rem;
@@ -342,19 +377,14 @@
 
 .secondaryButton {
   min-height: 40px;
-
   display: inline-flex;
   align-items: center;
   gap: 6px;
-
   padding: 7px 11px;
-
   border-color: var(--md-border-color);
   border-radius: 8px;
-
   color: var(--md-text-secondary);
   background: var(--md-surface-elevated);
-
   white-space: nowrap;
   font-size: 0.75rem;
 }
@@ -372,34 +402,48 @@
   pointer-events: none;
 }
 
-/* Workspace */
+/* ==========================================================================
+   Workspace & Editor Layout
+   ========================================================================== */
 
 .workspace {
   min-width: 0;
   min-height: 0;
-
   flex: 1 1 auto;
-
-  display: grid;
-  grid-template-columns: 270px minmax(0, 1fr) 250px;
-
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-
-  direction: ltr;
 }
 
-/* Sidebars */
+.editorLayout {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  overflow: hidden;
+  direction: rtl;
+}
+
+.sidebar {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--md-surface-background);
+  border-left: 1px solid var(--md-border-color);
+}
+
+/* ==========================================================================
+   Sidebars (Left & Right)
+   ========================================================================== */
 
 .leftSidebar,
 .propertiesPanel {
   min-width: 0;
   min-height: 0;
-
   direction: rtl;
-
   overflow-x: hidden;
   overflow-y: auto;
-
   background: var(--md-surface-background);
   scrollbar-width: thin;
   scrollbar-color: var(--md-border-strong) transparent;
@@ -421,9 +465,7 @@
 .sidebarTitle,
 .panelHeader h2 {
   margin: 0 0 13px;
-
   color: var(--md-text-primary);
-
   font-size: 0.95rem;
   font-weight: 700;
 }
@@ -431,19 +473,14 @@
 .sidebarAction {
   width: 100%;
   min-height: 40px;
-
   display: flex;
   align-items: center;
   gap: 9px;
-
   margin-bottom: 7px;
   padding: 7px 10px;
-
   border-radius: 8px;
-
   color: var(--md-text-secondary);
   background: transparent;
-
   text-align: right;
   font-size: 0.8rem;
 }
@@ -464,7 +501,7 @@
   box-shadow: inset -3px 0 0 var(--md-selection-color);
 }
 
-/* Elements */
+/* Elements Grid */
 
 .elementGrid {
   display: grid;
@@ -474,21 +511,16 @@
 
 .elementButton {
   min-height: 64px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-
   padding: 5px 2px;
-
   border-color: var(--md-border-color);
   border-radius: 8px;
-
   color: var(--md-text-secondary);
   background: var(--md-surface-elevated);
-
   box-shadow: var(--md-shadow-sm);
 }
 
@@ -511,45 +543,68 @@
 .elementSymbol {
   min-width: 31px;
   min-height: 31px;
-
   display: grid;
   place-items: center;
-
-  border: 1px solid color-mix(
-    in srgb,
-    var(--md-text-primary) 28%,
-    transparent
-  );
+  border: 1px solid color-mix(in srgb, var(--md-text-primary) 28%, transparent);
   border-radius: 50%;
-
   direction: ltr;
   font-family: "Times New Roman", Times, serif;
   font-size: 0.95rem;
   font-weight: 700;
 }
 
+.partialChargeSymbol {
+  border-radius: 6px;
+  font-style: italic;
+}
+
 .elementName {
   max-width: 100%;
-
   overflow: hidden;
-
   color: var(--md-text-muted);
-
   font-size: 0.58rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Switch */
+/* Tool & Arrow Columns */
+
+.toolColumn,
+.arrowColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.toolColumnButton,
+.arrowColumnButton {
+  width: 100%;
+  min-height: 64px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.toolColumnButton .elementName,
+.arrowColumnButton .elementName {
+  white-space: normal;
+  text-overflow: clip;
+  line-height: 1.4;
+}
+
+.arrowColumnButton .elementSymbol {
+  min-width: 31px;
+  min-height: 31px;
+}
+
+/* Switch & Info Cards */
 
 .switchRow {
   min-height: 38px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-
   color: var(--md-text-secondary);
   font-size: 0.78rem;
 }
@@ -557,28 +612,21 @@
 .switchRow input {
   width: 17px;
   height: 17px;
-
   cursor: pointer;
   accent-color: var(--md-selection-color);
 }
-
-/* Cards */
 
 .infoCard {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-
   margin-bottom: 7px;
   padding: 9px 10px;
-
   border: 1px solid var(--md-border-color);
   border-radius: 8px;
-
   color: var(--md-text-muted);
   background: var(--md-surface-elevated);
-
   font-size: 0.72rem;
 }
 
@@ -588,38 +636,64 @@
   font-family: "Times New Roman", Times, serif;
 }
 
-/* Canvas */
+/* ==========================================================================
+   Canvas Area & SVG Styling
+   ========================================================================== */
+
+.canvasWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--md-canvas-background);
+}
+
+.canvas {
+  width: 100%;
+  height: 100%;
+  flex: 1 1 auto;
+  cursor: crosshair;
+  touch-action: none;
+  background: var(--md-canvas-background);
+}
+
+.gridVisible {
+  background-image: radial-gradient(
+    var(--md-grid-color) 1px,
+    transparent 1px
+  );
+  background-size: 20px 20px;
+}
+
+.gridHidden {
+  background-image: none;
+}
 
 .canvasArea {
   min-width: 0;
   min-height: 0;
-
   display: flex;
   flex-direction: column;
-
   overflow: hidden;
-
   direction: rtl;
   background: var(--md-canvas-background);
 }
 
 .canvasToolbar {
   flex: 0 0 auto;
-
   min-height: 39px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-
   padding: 0 15px;
-
   border-bottom: 1px solid var(--md-border-color);
-
   color: var(--md-text-muted);
   background: var(--md-surface-background);
-
   font-size: 0.72rem;
 }
 
@@ -629,32 +703,23 @@
 
 .canvasPlaceholder {
   position: relative;
-
   width: 100%;
   min-width: 0;
   min-height: 0;
-
   flex: 1 1 auto;
-
   overflow: hidden;
-
   border: 1px solid var(--md-border-color);
-
   background: var(--md-canvas-background);
 }
 
 .moleculeCanvas {
   position: absolute;
   inset: 0;
-
   display: block;
-
   width: 100%;
   height: 100%;
-
   cursor: crosshair;
   touch-action: none;
-
   background:
     linear-gradient(
       45deg,
@@ -664,7 +729,43 @@
     var(--md-canvas-background);
 }
 
-/* Bond styles */
+/* Canvas Hints & Selection Status */
+
+.canvasHint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--md-surface-background);
+  color: var(--md-text-muted);
+  border: 1px solid var(--md-border-color);
+  font-size: 0.75rem;
+  pointer-events: none;
+  box-shadow: var(--md-shadow-sm);
+}
+
+.selectionInfo {
+  font-family: inherit;
+  font-size: 12px;
+  fill: var(--md-text-muted);
+}
+
+/* SVG Layers */
+
+.ringsLayer,
+.bondsLayer,
+.arrowsLayer,
+.atomsLayer {
+  pointer-events: auto;
+}
+
+.arrowPreview {
+  pointer-events: none;
+}
+
+/* Bonds & Atoms */
 
 .bond {
   cursor: pointer;
@@ -695,8 +796,6 @@
     drop-shadow(0 0 8px var(--md-selection-color));
 }
 
-/* Atom */
-
 .atom {
   cursor: pointer;
 }
@@ -705,41 +804,126 @@
   filter:
     drop-shadow(0 0 0.45rem var(--md-selection-color))
     drop-shadow(
-      0 0 1rem color-mix(
-        in srgb,
-        var(--md-selection-color) 65%,
-        transparent
-      )
+      0 0 1rem color-mix(in srgb, var(--md-selection-color) 65%, transparent)
     );
 }
 
-/* Welcome */
+/* ==========================================================================
+   Mechanistic Arrow List
+   ========================================================================== */
+
+.mechanisticArrowList {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.mechanisticArrowButton {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) 1.25rem;
+  align-items: center;
+  width: 100%;
+  min-height: 2.75rem;
+  gap: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--md-border-color);
+  border-radius: 0.65rem;
+  background: var(--md-surface-background);
+  color: var(--md-text-primary);
+  cursor: pointer;
+  direction: rtl;
+  text-align: right;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.mechanisticArrowButton:hover {
+  border-color: var(--md-focus-color);
+  background: var(--md-surface-hover);
+  transform: translateY(-1px);
+}
+
+.mechanisticArrowButton:focus-visible {
+  outline: 3px solid var(--md-focus-color);
+  outline-offset: 2px;
+}
+
+.mechanisticArrowButtonActive {
+  border-color: var(--md-selection-color);
+  background: color-mix(
+    in srgb,
+    var(--md-selection-color) 20%,
+    var(--md-surface-background)
+  );
+  color: var(--md-text-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-selection-color) 25%, transparent);
+}
+
+.mechanisticArrowIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 0.45rem;
+  background: var(--md-surface-elevated);
+  color: var(--md-arrow-color);
+  direction: ltr;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mechanisticArrowButtonActive .mechanisticArrowIcon {
+  background: var(--md-arrow-color);
+  color: #ffffff;
+}
+
+.mechanisticArrowLabel {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--md-text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mechanisticArrowCheck {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  color: var(--md-arrow-color);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* ==========================================================================
+   Welcome & Properties Panels
+   ========================================================================== */
 
 .canvasWelcome {
   position: absolute;
   inset: 0;
   z-index: 2;
-
   width: min(390px, calc(100% - 32px));
   height: fit-content;
   margin: auto;
   padding: 30px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
   border: 1px solid var(--md-border-color);
   border-radius: 16px;
-
   color: var(--md-text-secondary);
-  background: color-mix(
-    in srgb,
-    var(--md-surface-background) 90%,
-    transparent
-  );
-
+  background: color-mix(in srgb, var(--md-surface-background) 90%, transparent);
   box-shadow: var(--md-shadow-lg);
   text-align: center;
   pointer-events: none;
@@ -748,7 +932,6 @@
 .canvasIcon {
   margin-bottom: 12px;
   color: var(--md-selection-color);
-
   direction: ltr;
   font-family: "Times New Roman", Times, serif;
   font-size: 3rem;
@@ -765,26 +948,17 @@
   font-size: 0.8rem;
 }
 
-.canvasHint {
-  color: var(--md-text-muted);
-}
-
-/* Properties panel */
-
 .panelHeader {
   padding: 19px 16px 5px;
 }
 
 .emptyProperties {
   min-height: 220px;
-
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
   padding: 20px;
-
   color: var(--md-text-muted);
   text-align: center;
 }
@@ -792,7 +966,6 @@
 .emptyPropertiesIcon {
   margin-bottom: 13px;
   color: var(--md-selection-color);
-
   font-family: "Times New Roman", Times, serif;
   font-size: 2.4rem;
 }
@@ -815,15 +988,11 @@
 
 .propertyBadge {
   display: inline-block;
-
   margin-bottom: 10px;
   padding: 4px 8px;
-
   border-radius: 5px;
-
   color: #ffffff;
   background: var(--md-bond-color);
-
   direction: ltr;
   font-size: 0.62rem;
   font-weight: 700;
@@ -837,13 +1006,10 @@
 
 .propertyRow {
   min-height: 38px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   border-bottom: 1px solid var(--md-border-color);
-
   color: var(--md-text-muted);
   font-size: 0.74rem;
 }
@@ -852,18 +1018,13 @@
   color: var(--md-text-primary);
 }
 
-/* Bond order */
-
 .bondOrderControl {
   display: flex;
   align-items: center;
   gap: 8px;
-
   padding: 6px 10px;
-
   border: 1px solid var(--md-border-color);
   border-radius: 8px;
-
   background: var(--md-surface-elevated);
   white-space: nowrap;
 }
@@ -881,15 +1042,11 @@
 .bondOrderButton {
   min-width: 45px;
   min-height: 30px;
-
   padding: 4px 7px;
-
   border-color: var(--md-border-color);
   border-radius: 6px;
-
   color: var(--md-text-secondary);
   background: var(--md-surface-background);
-
   font-size: 0.68rem;
 }
 
@@ -897,7 +1054,6 @@
 .bondOrderButtonActive {
   border-color: var(--md-selection-color);
   color: var(--md-text-primary);
-
   background: color-mix(
     in srgb,
     var(--md-selection-color) 25%,
@@ -905,21 +1061,15 @@
   );
 }
 
-/* Delete buttons */
-
 .propertyDeleteButton,
 .propertyDeleteStructureButton {
   width: 100%;
-
   margin-top: 18px;
   padding: 9px;
-
   border: 1px solid var(--md-danger-color);
   border-radius: 7px;
-
   color: var(--md-danger-color);
   background: transparent;
-
   font-size: 0.74rem;
 }
 
@@ -937,7 +1087,6 @@
 
 .propertyDeleteStructureButton {
   margin-top: 0;
-
   color: #ffffff;
   background: #991b1b;
   border-color: #7f1d1d;
@@ -947,33 +1096,31 @@
   background: #b91c1c;
 }
 
-/* Footer */
+/* ==========================================================================
+   Footer
+   ========================================================================== */
 
 .footer {
   flex: 0 0 auto;
-
   min-height: 32px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-
   padding: 0 17px;
-
   border-top: 1px solid var(--md-border-color);
-
   color: var(--md-text-muted);
   background: var(--md-surface-background);
-
   font-size: 0.68rem;
 }
 
-/* Responsive tablet */
+/* ==========================================================================
+   Responsive Breakpoints
+   ========================================================================== */
 
 @media (max-width: 1100px) {
-  .workspace {
-    grid-template-columns: 220px minmax(0, 1fr);
+  .editorLayout {
+    grid-template-columns: 240px minmax(0, 1fr);
   }
 
   .propertiesPanel {
@@ -984,8 +1131,6 @@
     min-width: 70px;
   }
 }
-
-/* Responsive mobile */
 
 @media (max-width: 760px) {
   .application {
@@ -1026,16 +1171,13 @@
     display: none;
   }
 
-  .workspace {
-    min-height: 0;
-
+  .editorLayout {
     display: flex;
     flex-direction: column;
-
     overflow: visible;
   }
 
-  .canvasArea {
+  .canvasWrapper {
     order: 1;
     min-height: 520px;
   }
@@ -1044,11 +1186,12 @@
     min-height: 480px;
   }
 
+  .sidebar,
   .leftSidebar {
     order: 2;
-    max-height: 310px;
-
+    max-height: 340px;
     border-top: 1px solid var(--md-border-color);
+    border-left: 0;
     border-right: 0;
   }
 
@@ -1064,8 +1207,6 @@
     padding: 5px 7px;
   }
 }
-
-/* Small mobile */
 
 @media (max-width: 480px) {
   .headerButton {
@@ -1104,8 +1245,6 @@
   }
 }
 
-/* Reduced motion */
-
 @media (prefers-reduced-motion: reduce) {
   .application *,
   .application *::before,
@@ -1115,140 +1254,4 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
-}
-/* فهرست ستونی فلش‌ها و ابزارهای مکانیسم */
-.mechanisticArrowList {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  gap: 0.5rem;
-}
-
-.mechanisticArrowButton {
-  display: grid;
-  grid-template-columns: 2.5rem minmax(0, 1fr) 1.25rem;
-  align-items: center;
-  width: 100%;
-  min-height: 2.75rem;
-  gap: 0.65rem;
-  padding: 0.5rem 0.65rem;
-
-  border: 1px solid var(--border-color, #d8dee9);
-  border-radius: 0.65rem;
-  background: var(--panel-background, #ffffff);
-  color: var(--text-color, #263238);
-
-  cursor: pointer;
-  direction: rtl;
-  text-align: right;
-
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-.mechanisticArrowButton:hover {
-  border-color: var(--accent-color, #2563eb);
-  background: var(--hover-background, #eff6ff);
-  transform: translateY(-1px);
-}
-
-.mechanisticArrowButton:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.3);
-  outline-offset: 2px;
-}
-
-.mechanisticArrowButtonActive {
-  border-color: var(--accent-color, #2563eb);
-  background: var(--active-background, #dbeafe);
-  color: var(--active-text-color, #1d4ed8);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-}
-
-.mechanisticArrowIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.3rem;
-  height: 2.3rem;
-
-  border-radius: 0.45rem;
-  background: var(--icon-background, #f1f5f9);
-
-  direction: ltr;
-  font-size: 1.35rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.mechanisticArrowButtonActive .mechanisticArrowIcon {
-  background: var(--accent-color, #2563eb);
-  color: #ffffff;
-}
-
-.mechanisticArrowLabel {
-  min-width: 0;
-  overflow: hidden;
-
-  font-size: 0.85rem;
-  font-weight: 600;
-  line-height: 1.5;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mechanisticArrowCheck {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.25rem;
-
-  color: var(--accent-color, #2563eb);
-  font-size: 1rem;
-  font-weight: 800;
-}
-.arrowColumn {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.arrowColumnButton {
-  width: 100%;
-  min-height: 64px;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.arrowColumnButton .elementSymbol {
-  min-width: 31px;
-  min-height: 31px;
-}
-
-.arrowColumnButton .elementName {
-  white-space: normal;
-  text-overflow: clip;
-  line-height: 1.4;
-}
-.toolColumn {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.toolColumnButton {
-  width: 100%;
-  min-height: 64px;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.toolColumnButton .elementName {
-  white-space: normal;
-  text-overflow: clip;
-  line-height: 1.4;
 }

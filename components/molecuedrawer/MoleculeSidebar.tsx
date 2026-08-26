@@ -222,7 +222,7 @@ export default function MoleculeSidebar({
 
   const handleFunctionalGroupChange = (groupId: string) => {
     setPaletteSelection({ type: "functional-group", id: groupId });
-    onModeChange("add-functional-group" as InteractionMode);
+    onModeChange("add-functional-group");
     onFunctionalGroupChange(groupId);
   };
 
@@ -238,16 +238,19 @@ export default function MoleculeSidebar({
 
   const handleArrowChange = (arrowType: ArrowType) => {
     setPaletteSelection({ type: "arrow", id: arrowType });
+    onModeChange("add-arrow");
     onArrowChange(arrowType);
   };
 
   const handleOperatorChange = (operator: ReactionOperatorKind) => {
     setPaletteSelection({ type: "operator", id: operator });
+
     if (onOperatorSelect) {
       onOperatorSelect(operator);
-    } else {
-      onModeChange("add-text");
+      return;
     }
+
+    onModeChange("add-text");
   };
 
   return (
@@ -291,31 +294,31 @@ export default function MoleculeSidebar({
       </SidebarSection>
 
       <SidebarSection title="ابزارهای عمومی">
-  <div className={styles.toolColumn}>
-    {GENERAL_TOOLS.map((tool) => {
-      const isActive = document.tool.mode === tool.id;
+        <div className={styles.toolColumn}>
+          {GENERAL_TOOLS.map((tool) => {
+            const isActive = document.tool.mode === tool.id;
 
-      return (
-        <button
-          key={tool.id}
-          type="button"
-          className={`${styles.elementButton} ${
-            isActive ? styles.elementButtonActive : ""
-          } ${styles.toolColumnButton}`}
-          onClick={() => handleModeChange(tool.id)}
-          title={tool.label}
-          aria-label={tool.label}
-          aria-pressed={isActive}
-        >
-          <span className={styles.elementSymbol} aria-hidden="true">
-            {tool.icon}
-          </span>
-          <span className={styles.elementName}>{tool.label}</span>
-        </button>
-      );
-    })}
-  </div>
-</SidebarSection>
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                className={`${styles.elementButton} ${
+                  isActive ? styles.elementButtonActive : ""
+                } ${styles.toolColumnButton}`}
+                onClick={() => handleModeChange(tool.id)}
+                title={tool.label}
+                aria-label={tool.label}
+                aria-pressed={isActive}
+              >
+                <span className={styles.elementSymbol} aria-hidden="true">
+                  {tool.icon}
+                </span>
+                <span className={styles.elementName}>{tool.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </SidebarSection>
 
       <SidebarSection title="حلقه‌ها">
         <div className={styles.elementGrid}>
@@ -443,58 +446,58 @@ export default function MoleculeSidebar({
         </div>
       </SidebarSection>
 
-    <SidebarSection title="فلش‌ها و مکانیسم">
-  <div className={styles.arrowColumn}>
-    {ARROW_TYPES.map((arrow) => {
-      const isActive =
-        document.tool.mode === "add-arrow" &&
-        document.tool.selectedArrowType === arrow.id;
-
-      return (
-        <button
-          key={arrow.id}
-          type="button"
-          className={`${styles.elementButton} ${
-            isActive ? styles.elementButtonActive : ""
-          } ${styles.arrowColumnButton}`}
-          onClick={() => handleArrowChange(arrow.id)}
-          title={arrow.label}
-          aria-label={arrow.label}
-          aria-pressed={isActive}
-        >
-          <span className={styles.elementSymbol} aria-hidden="true">
-            {arrow.symbol}
-          </span>
-          <span className={styles.elementName}>{arrow.label}</span>
-        </button>
-      );
-    })}
-  </div>
-</SidebarSection>
-
-      <SidebarSection title="عملگرهای واکنش">
-        <div className={styles.elementGrid}>
-          {REACTION_OPERATORS.map((op) => {
+      <SidebarSection title="فلش‌ها و مکانیسم">
+        <div className={styles.arrowColumn}>
+          {ARROW_TYPES.map((arrow) => {
             const isActive =
-              paletteSelection?.type === "operator" &&
-              paletteSelection.id === op.id;
+              document.tool.mode === "add-arrow" &&
+              document.tool.selectedArrowType === arrow.id;
 
             return (
               <button
-                key={op.id}
+                key={arrow.id}
+                type="button"
+                className={`${styles.elementButton} ${
+                  isActive ? styles.elementButtonActive : ""
+                } ${styles.arrowColumnButton}`}
+                onClick={() => handleArrowChange(arrow.id)}
+                title={arrow.label}
+                aria-label={arrow.label}
+                aria-pressed={isActive}
+              >
+                <span className={styles.elementSymbol} aria-hidden="true">
+                  {arrow.symbol}
+                </span>
+                <span className={styles.elementName}>{arrow.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="عملگرهای واکنش">
+        <div className={styles.elementGrid}>
+          {REACTION_OPERATORS.map((operator) => {
+            const isActive =
+              paletteSelection?.type === "operator" &&
+              paletteSelection.id === operator.id;
+
+            return (
+              <button
+                key={operator.id}
                 type="button"
                 className={`${styles.elementButton} ${
                   isActive ? styles.elementButtonActive : ""
                 }`}
-                onClick={() => handleOperatorChange(op.id)}
-                title={op.label}
-                aria-label={op.label}
+                onClick={() => handleOperatorChange(operator.id)}
+                title={operator.label}
+                aria-label={operator.label}
                 aria-pressed={isActive}
               >
                 <span className={styles.elementSymbol} aria-hidden="true">
-                  {op.symbol}
+                  {operator.symbol}
                 </span>
-                <span className={styles.elementName}>{op.label}</span>
+                <span className={styles.elementName}>{operator.label}</span>
               </button>
             );
           })}
@@ -570,4 +573,3 @@ export default function MoleculeSidebar({
     </aside>
   );
 }
-
