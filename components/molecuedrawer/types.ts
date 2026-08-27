@@ -49,6 +49,7 @@ export interface StyleConfiguration {
   strokeColor: string;
   strokeWidth: number;
   opacity: number;
+  
   fontSize: number;
   fontFamily: string;
   scale: number;

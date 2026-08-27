@@ -1255,3 +1255,55 @@
     animation-iteration-count: 1 !important;
   }
 }
+.compactTextMenu {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: auto;
+  height: 42px;
+  padding: 5px 8px;
+  background: var(--md-surface-elevated, #ffffff);
+  border: 1px solid var(--md-border-color, #cbd5e1);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  direction: rtl;
+  white-space: nowrap;
+}
+
+.compactColorButton {
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 2px solid #ffffff;
+  outline: 2px solid #64748b;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.compactSizeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--md-text-primary, #1e293b);
+  background: var(--md-surface, #f8fafc);
+  border: 1px solid var(--md-border-color, #cbd5e1);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.compactSizeButton:hover {
+  background: var(--md-primary-light, #dbeafe);
+  border-color: #2563eb;
+}
+
+.compactSizeValue {
+  min-width: 32px;
+  color: var(--md-text-primary, #1e293b);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+}

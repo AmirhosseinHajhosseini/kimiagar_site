@@ -5,13 +5,10 @@ import type {
   RadicalType,
 } from "../types";
 
-/**
- * اعمال یا تغییر بار الکتریکی (Formal Charge یا Partial Charge) روی اتم
- */
 export function applyChargeToAtom(
   atom: Atom,
   chargeKind: ChargeKind,
-  customCharge?: number
+  customCharge?: number,
 ): Atom {
   let formal = atom.formalCharge ?? 0;
   let partial = atom.partialCharge ?? "none";
@@ -60,36 +57,45 @@ export function applyChargeToAtom(
   };
 }
 
-/**
- * اعمال تنظیمات مربوط به جفت‌الکترون ناپیوندی یا تک‌الکترون رادیکالی روی اتم
- */
 export function applyElectronToAtom(
   atom: Atom,
-  electronType: ElectronDisplay | RadicalType | "remove"
+  electronType: ElectronDisplay | RadicalType | "remove",
 ): Atom {
-  const updated = { ...atom };
-
-  if (electronType === "remove") {
-    updated.electronDisplay = "none";
-    updated.radical = "none";
-    return updated;
+  if (electronType === "remove" || electronType === "none") {
+    return {
+      ...atom,
+      electronDisplay: "none",
+      radical: "none",
+      showLonePairs: false,
+    };
   }
 
-  if (electronType === "lone-pair" || electronType === "single-electron") {
-    updated.electronDisplay = electronType;
-    return updated;
+  if (electronType === "lone-pair") {
+    return {
+      ...atom,
+      electronDisplay: "lone-pair",
+      showLonePairs: true,
+      radical: "none",
+    };
   }
 
-  if (electronType === "single" || electronType === "double") {
-    updated.radical = electronType;
-    return updated;
+  if (electronType === "single-electron" || electronType === "single") {
+    return {
+      ...atom,
+      electronDisplay: "single-electron",
+      showLonePairs: false,
+      radical: "single",
+    };
   }
 
-  if (electronType === "none") {
-    updated.electronDisplay = "none";
-    updated.radical = "none";
-    return updated;
+  if (electronType === "double") {
+    return {
+      ...atom,
+      electronDisplay: "none",
+      showLonePairs: false,
+      radical: "double",
+    };
   }
 
-  return updated;
+  return atom;
 }

@@ -23,6 +23,12 @@ import type {
   TextObject,
 } from "./types";
 
+import {
+  TEXT_COLORS,
+  TEXT_SIZES,
+  type TextToolSettingsValue,
+} from "./chemistry/text-tool/types";
+
 import { getElementData } from "./chemistry/atomData";
 import {
   createDefaultStyle,
@@ -45,82 +51,25 @@ type AtomPalette = {
 };
 
 const ELEMENT_PALETTES: Record<string, AtomPalette> = {
-  H: {
-    fill: "#E2E8F0",
-    text: "#1E293B",
-  },
-  C: {
-    fill: "#334155",
-    text: "#FFFFFF",
-  },
-  N: {
-    fill: "#2563EB",
-    text: "#FFFFFF",
-  },
-  O: {
-    fill: "#DC2626",
-    text: "#FFFFFF",
-  },
-  F: {
-    fill: "#16A34A",
-    text: "#FFFFFF",
-  },
-  Cl: {
-    fill: "#059669",
-    text: "#FFFFFF",
-  },
-  Br: {
-    fill: "#92400E",
-    text: "#FFFFFF",
-  },
-  I: {
-    fill: "#7C3AED",
-    text: "#FFFFFF",
-  },
-  S: {
-    fill: "#EAB308",
-    text: "#1F2937",
-  },
-  P: {
-    fill: "#EA580C",
-    text: "#FFFFFF",
-  },
-  B: {
-    fill: "#D97706",
-    text: "#FFFFFF",
-  },
-  Si: {
-    fill: "#64748B",
-    text: "#FFFFFF",
-  },
-  Na: {
-    fill: "#7C3AED",
-    text: "#FFFFFF",
-  },
-  K: {
-    fill: "#8B5CF6",
-    text: "#FFFFFF",
-  },
-  Ca: {
-    fill: "#22C55E",
-    text: "#FFFFFF",
-  },
-  Mg: {
-    fill: "#65A30D",
-    text: "#FFFFFF",
-  },
-  Fe: {
-    fill: "#B45309",
-    text: "#FFFFFF",
-  },
-  Cu: {
-    fill: "#C2410C",
-    text: "#FFFFFF",
-  },
-  Zn: {
-    fill: "#94A3B8",
-    text: "#1F2937",
-  },
+  H: { fill: "#E2E8F0", text: "#1E293B" },
+  C: { fill: "#334155", text: "#FFFFFF" },
+  N: { fill: "#2563EB", text: "#FFFFFF" },
+  O: { fill: "#DC2626", text: "#FFFFFF" },
+  F: { fill: "#16A34A", text: "#FFFFFF" },
+  Cl: { fill: "#059669", text: "#FFFFFF" },
+  Br: { fill: "#92400E", text: "#FFFFFF" },
+  I: { fill: "#7C3AED", text: "#FFFFFF" },
+  S: { fill: "#EAB308", text: "#1F2937" },
+  P: { fill: "#EA580C", text: "#FFFFFF" },
+  B: { fill: "#D97706", text: "#FFFFFF" },
+  Si: { fill: "#64748B", text: "#FFFFFF" },
+  Na: { fill: "#7C3AED", text: "#FFFFFF" },
+  K: { fill: "#8B5CF6", text: "#FFFFFF" },
+  Ca: { fill: "#22C55E", text: "#FFFFFF" },
+  Mg: { fill: "#65A30D", text: "#FFFFFF" },
+  Fe: { fill: "#B45309", text: "#FFFFFF" },
+  Cu: { fill: "#C2410C", text: "#FFFFFF" },
+  Zn: { fill: "#94A3B8", text: "#1F2937" },
 };
 
 const getAtomPalette = (
@@ -161,6 +110,9 @@ interface MoleculeCanvasProps {
   document: MechanismDocument;
   bondSelection: string[];
   activeOperator?: string | null;
+  textToolSettings: TextToolSettingsValue;
+
+
 
   onAtomMouseDown: (
     event: ReactMouseEvent<SVGGElement>,
@@ -398,6 +350,8 @@ export default function MoleculeCanvas({
   document,
   bondSelection,
   activeOperator,
+  textToolSettings,
+
   onAtomMouseDown,
   onBondClick,
   onRingClick,
@@ -635,9 +589,8 @@ export default function MoleculeCanvas({
         visible: true,
         zIndex: 3,
         style: createDefaultStyle({
-          color:
-            "var(--md-text-primary, #1F2937)",
-          fontSize: 24,
+          color: TEXT_COLORS[textToolSettings.color] || "#1F2937",
+          fontSize: TEXT_SIZES[textToolSettings.size] || 24,
         }),
       };
 
@@ -947,7 +900,6 @@ export default function MoleculeCanvas({
           {atom.element}
         </text>
 
-        {/* نشان بار اتم (متن سفید روی دایره قرمز) */}
         {chargeSymbol && (
           <g transform="translate(14, -12)">
             <circle
@@ -970,7 +922,6 @@ export default function MoleculeCanvas({
           </g>
         )}
 
-        {/* جفت‌الکترون ناپیوندی */}
         {(atom.electronDisplay === "lone-pair" ||
           atom.showLonePairs) && (
           <g
@@ -993,7 +944,6 @@ export default function MoleculeCanvas({
           </g>
         )}
 
-        {/* رادیکال / تک‌الکترون */}
         {(atom.electronDisplay === "single-electron" ||
           atom.radical === "single") && (
           <circle
@@ -1093,16 +1043,26 @@ export default function MoleculeCanvas({
         }}
         style={{ cursor: "pointer" }}
       >
+        {isSelected && (
+          <rect
+            x={-15}
+            y={-(textObject.style.fontSize ?? 20) / 2 - 4}
+            width={30 + textContent.length * 10}
+            height={(textObject.style.fontSize ?? 20) + 8}
+            fill="none"
+            stroke="var(--md-selection-color, #2563EB)"
+            strokeWidth="1.5"
+            strokeDasharray="3 3"
+            rx="4"
+            pointerEvents="none"
+          />
+        )}
         <text
           x="0"
           y="0"
           textAnchor="middle"
           dominantBaseline="middle"
-          fill={
-            isSelected
-              ? "var(--md-selection-color)"
-              : textObject.style.color
-          }
+          fill={textObject.style.color || "var(--md-text-primary, #1F2937)"}
           fontSize={textObject.style.fontSize}
           fontWeight={textObject.fontWeight}
           fontStyle={textObject.fontStyle}

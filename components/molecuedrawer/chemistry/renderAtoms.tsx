@@ -1,9 +1,6 @@
 import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import type { Atom } from "../types";
-import {
-  getChargeDisplayText,
-  getElectronPositions,
-} from "./chargeAndElectronUtils";
+import { getChargeDisplayText } from "./chargeAndElectronUtils";
 
 type AtomPalette = {
   fill: string;
@@ -53,18 +50,17 @@ export function renderAtoms({
     const isSelected = selectedAtomId === atom.id;
     const { fill, text } = getAtomPalette(atom.element || "C");
     const chargeText = getChargeDisplayText(atom);
-    // chemistry/renderAtoms.tsx
-const shouldRenderLonePair =
-  atom.showLonePairs &&
-  atom.electronDisplay === "lone-pair";
 
-const rawElectronPositions = shouldRenderLonePair
-  ? getElectronPositions(atom.position, atomRadius)
-  : [];
+    // ۱. تفکیک وضعیت‌های الکترونی
+    const isLonePair =
+      atom.showLonePairs === true && atom.electronDisplay === "lone-pair";
 
+    const isSingleElectron =
+      atom.electronDisplay === "single-electron" || atom.radical === "single";
 
-    // آفست بج بار الکتریکی متناسب با اندازه شعاع اتم
+    // ۲. فواصل محاسبه‌شده برای خارج بودن از هاله انتخاب
     const badgeOffset = atomRadius * 0.85;
+    const lonePairY = -atomRadius - 14; // کاملاً بالاتر از خط‌چین هاله
 
     return (
       <g
@@ -74,14 +70,14 @@ const rawElectronPositions = shouldRenderLonePair
         style={{ cursor: "pointer" }}
         onMouseDown={(event) => onAtomMouseDown(event, atom.id)}
       >
-        {/* ۱. نشانگر انتخاب اتم */}
+        {/* ۱. نشانگر انتخاب اتم (هاله خط‌چین) */}
         {isSelected && (
           <circle
-            r={atomRadius + 4}
+            r={atomRadius + 5}
             fill="none"
-            stroke="var(--md-selection-color, #3b82f6)"
+            stroke="var(--md-selection-color, #EAB308)"
             strokeWidth={2}
-            strokeDasharray="4 2"
+            strokeDasharray="4 3"
             pointerEvents="none"
           />
         )}
@@ -90,8 +86,8 @@ const rawElectronPositions = shouldRenderLonePair
         <circle
           r={atomRadius}
           fill={fill}
-          stroke={isSelected ? "var(--md-selection-color, #3b82f6)" : fill}
-          strokeWidth={isSelected ? 2.5 : 1}
+          stroke={isSelected ? "var(--md-selection-color, #EAB308)" : fill}
+          strokeWidth={isSelected ? 2 : 1}
         />
 
         {/* ۳. نماد شیمیایی عنصر */}
@@ -115,41 +111,44 @@ const rawElectronPositions = shouldRenderLonePair
             pointerEvents="none"
           >
             <circle
-              r={6.5}
+              r={8.5}
               fill="#FFFFFF"
-              stroke="#64748B"
-              strokeWidth={1}
+              stroke="#0F172A"
+              strokeWidth={1.5}
             />
             <text
               y={0.5}
               textAnchor="middle"
               dominantBaseline="middle"
-              fill="#0F172A"
-              fontSize={7.5}
-              fontWeight={800}
+              fill="#DC2626"
+              fontSize={10}
+              fontWeight={900}
+              style={{ userSelect: "none" }}
+              pointerEvents="none"
             >
               {chargeText}
             </text>
           </g>
         )}
 
-        {/* ۵. جفت‌الکترون‌های ناپیوندی و رادیکال‌ها */}
-        {rawElectronPositions.map((pos, index) => {
-          // در صورتی که تابع موقعیت مطلق فرستاده باشد، آن را به مختصات محلی تبدیل می‌کنیم
-          const cx = Math.abs(pos.x - atom.position.x) < atomRadius * 3 ? pos.x - atom.position.x : pos.x;
-          const cy = Math.abs(pos.y - atom.position.y) < atomRadius * 3 ? pos.y - atom.position.y : pos.y;
+        {/* ۵. جفت‌الکترون ناپیوندی (دو نقطه قرمز بالاتر از هاله انتخاب) */}
+        {isLonePair && (
+          <g transform={`translate(0, ${lonePairY})`} pointerEvents="none">
+            <circle cx={-4} cy={0} r={2.2} fill="#DC2626" />
+            <circle cx={4} cy={0} r={2.2} fill="#DC2626" />
+          </g>
+        )}
 
-          return (
-            <circle
-              key={`el-${atom.id}-${index}`}
-              cx={cx}
-              cy={cy}
-              r={2}
-              fill="var(--md-text-primary, #0f172a)"
-              pointerEvents="none"
-            />
-          );
-        })}
+        {/* ۶. تک‌الکترون / رادیکال (یک نقطه قرمز در بالا-راست بیرون از هاله) */}
+        {isSingleElectron && (
+          <circle
+            cx={atomRadius + 8}
+            cy={-(atomRadius + 8)}
+            r={2.4}
+            fill="#DC2626"
+            pointerEvents="none"
+          />
+        )}
       </g>
     );
   });

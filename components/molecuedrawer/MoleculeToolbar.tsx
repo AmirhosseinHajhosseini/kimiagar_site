@@ -1,7 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { InteractionMode, ThemeState } from "./types";
 import styles from "./MoleculeDrawer.module.css";
+
+import {
+  DEFAULT_TEXT_TOOL_SETTINGS,
+  TEXT_COLORS,
+  type TextColorName,
+  type TextSizeName,
+  type TextToolSettingsValue,
+} from "./chemistry/text-tool/types";
 
 interface ToolbarItem {
   readonly mode: InteractionMode;
@@ -15,7 +24,12 @@ const TOOLBAR_ITEMS: readonly ToolbarItem[] = [
   { mode: "add-atom", label: "اتم", icon: "C", shortcut: "A" },
   { mode: "add-bond", label: "پیوند", icon: "／", shortcut: "B" },
   { mode: "add-ring", label: "حلقه", icon: "⬡", shortcut: "R" },
-  { mode: "add-functional-group", label: "گروه عاملی", icon: "OH", shortcut: "G" },
+  {
+    mode: "add-functional-group",
+    label: "گروه عاملی",
+    icon: "OH",
+    shortcut: "G",
+  },
   { mode: "add-arrow", label: "فلش مکانیزمی", icon: "↝", shortcut: "E" },
   { mode: "add-charge", label: "بار الکتریکی", icon: "±", shortcut: "Q" },
   { mode: "add-electron", label: "الکترون", icon: "••", shortcut: "L" },
@@ -25,18 +39,32 @@ const TOOLBAR_ITEMS: readonly ToolbarItem[] = [
   { mode: "pan", label: "جابه‌جایی", icon: "✋", shortcut: "H" },
 ];
 
+const COLOR_OPTIONS: readonly TextColorName[] = [
+  "red",
+  "blue",
+  "green",
+  "black",
+  "pink",
+];
+
+const SIZE_ORDER: readonly TextSizeName[] = ["small", "medium", "large"];
+
 interface MoleculeToolbarProps {
   activeMode: InteractionMode;
   showGrid: boolean;
   snapToGrid?: boolean;
   canUndo: boolean;
   canRedo: boolean;
-  themeMode: ThemeState["mode"]; // اضافه شده
+  themeMode: ThemeState["mode"];
+  textToolSettings?: TextToolSettingsValue;
+
   onModeChange: (mode: InteractionMode) => void;
+  onTextToolSettingsChange?: (settings: TextToolSettingsValue) => void;
+
   onToggleGrid: () => void;
   onToggleSnapToGrid?: () => void;
-  onClearCanvas: () => void; // ضروری شد
-  onToggleTheme: () => void; // اضافه شده
+  onClearCanvas: () => void;
+  onToggleTheme: () => void;
   onUndo: () => void;
   onRedo: () => void;
 }
@@ -48,7 +76,9 @@ export default function MoleculeToolbar({
   canUndo,
   canRedo,
   themeMode,
+  textToolSettings = DEFAULT_TEXT_TOOL_SETTINGS,
   onModeChange,
+  onTextToolSettingsChange,
   onToggleGrid,
   onToggleSnapToGrid,
   onClearCanvas,
@@ -56,6 +86,53 @@ export default function MoleculeToolbar({
   onUndo,
   onRedo,
 }: MoleculeToolbarProps) {
+  const [isTextSettingsOpen, setIsTextSettingsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+  });
+
+  useEffect(() => {
+    if (!isTextSettingsOpen) return;
+
+    const handleClickOutside = () => {
+      setIsTextSettingsOpen(false);
+    };
+
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, [isTextSettingsOpen]);
+
+  const updateTextSettings = (patch: Partial<TextToolSettingsValue>) => {
+    onTextToolSettingsChange?.({
+      ...textToolSettings,
+      ...patch,
+    });
+  };
+
+  const handleNextColor = () => {
+    const currentIndex = COLOR_OPTIONS.indexOf(textToolSettings.color);
+    const nextIndex = (currentIndex + 1) % COLOR_OPTIONS.length;
+    updateTextSettings({ color: COLOR_OPTIONS[nextIndex] });
+  };
+
+  const handleDecreaseSize = () => {
+    const currentIndex = SIZE_ORDER.indexOf(textToolSettings.size);
+    if (currentIndex > 0) {
+      updateTextSettings({ size: SIZE_ORDER[currentIndex - 1] });
+    }
+  };
+
+  const handleIncreaseSize = () => {
+    const currentIndex = SIZE_ORDER.indexOf(textToolSettings.size);
+    if (currentIndex < SIZE_ORDER.length - 1) {
+      updateTextSettings({ size: SIZE_ORDER[currentIndex + 1] });
+    }
+  };
+
+  const currentHexColor =
+    TEXT_COLORS[textToolSettings.color] ?? TEXT_COLORS.red;
+
   return (
     <nav
       className={styles.toolbar}
@@ -65,6 +142,119 @@ export default function MoleculeToolbar({
       <div className={styles.toolbarGroup}>
         {TOOLBAR_ITEMS.map((item) => {
           const isActive = activeMode === item.mode;
+          const isTextTool = item.mode === "add-text";
+
+          if (isTextTool) {
+            return (
+              <div
+                key={item.mode}
+                style={{ position: "relative" }}
+                onContextMenu={(event) => event.preventDefault()}
+              >
+                <button
+                  type="button"
+                  className={`${styles.toolButton} ${
+                    isActive ? styles.toolButtonActive : ""
+                  }`}
+                  aria-pressed={isActive}
+                  aria-label="متن"
+                  title="متن — کلیک راست برای تغییر رنگ و اندازه"
+                  onClick={() => onModeChange("add-text")}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    setMenuPosition({
+                      top: rect.bottom + 8,
+                      left: rect.left + rect.width / 2,
+                    });
+
+                    onModeChange("add-text");
+                    setIsTextSettingsOpen((open) => !open);
+                  }}
+                >
+                  <span
+                    className={styles.toolIcon}
+                    aria-hidden="true"
+                    style={{ color: currentHexColor, fontWeight: 900 }}
+                  >
+                    T
+                  </span>
+
+                  <span className={styles.toolLabel}>متن</span>
+                  <kbd>T</kbd>
+                </button>
+
+                {isTextSettingsOpen && (
+                  <div
+                    className={styles.compactTextMenu}
+                    role="dialog"
+                    aria-label="تنظیمات متن"
+                    style={{
+                      position: "fixed",
+                      top: `${menuPosition.top}px`,
+                      left: `${menuPosition.left}px`,
+                      transform: "translateX(-50%)",
+                      zIndex: 2147483647,
+                    }}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => event.stopPropagation()}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                  >
+                    {/* دکمه انتخاب / چرخش بین رنگ‌ها */}
+                    <button
+                      type="button"
+                      className={styles.compactColorButton}
+                      style={{ backgroundColor: currentHexColor }}
+                      aria-label={`تغییر رنگ متن (فعلی: ${textToolSettings.color})`}
+                      title="کلیک برای تغییر رنگ"
+                      onClick={handleNextColor}
+                    />
+
+                    {/* دکمه کاهش اندازه */}
+                    <button
+                      type="button"
+                      className={styles.compactSizeButton}
+                      aria-label="کاهش اندازه متن"
+                      title="کوچک‌تر"
+                      onClick={handleDecreaseSize}
+                      disabled={textToolSettings.size === "small"}
+                    >
+                      A−
+                    </button>
+
+                    {/* نمایش اندازه فعلی */}
+                    <span
+                      className={styles.compactSizeValue}
+                      aria-label={`اندازه متن: ${textToolSettings.size}`}
+                    >
+                      {textToolSettings.size === "small"
+                        ? "S"
+                        : textToolSettings.size === "medium"
+                          ? "M"
+                          : "L"}
+                    </span>
+
+                    {/* دکمه افزایش اندازه */}
+                    <button
+                      type="button"
+                      className={styles.compactSizeButton}
+                      aria-label="افزایش اندازه متن"
+                      title="بزرگ‌تر"
+                      onClick={handleIncreaseSize}
+                      disabled={textToolSettings.size === "large"}
+                    >
+                      A+
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          }
 
           return (
             <button
@@ -81,6 +271,7 @@ export default function MoleculeToolbar({
               <span className={styles.toolIcon} aria-hidden="true">
                 {item.icon}
               </span>
+
               <span className={styles.toolLabel}>{item.label}</span>
               <kbd>{item.shortcut}</kbd>
             </button>
@@ -113,7 +304,11 @@ export default function MoleculeToolbar({
           onClick={onToggleSnapToGrid}
           disabled={!onToggleSnapToGrid}
           aria-pressed={snapToGrid}
-          title={snapToGrid ? "غیرفعال کردن چسبیدن به شبکه" : "فعال کردن چسبیدن به شبکه"}
+          title={
+            snapToGrid
+              ? "غیرفعال کردن چسبیدن به شبکه"
+              : "فعال کردن چسبیدن به شبکه"
+          }
         >
           <span aria-hidden="true">⊞</span>
           چسبش
@@ -124,9 +319,11 @@ export default function MoleculeToolbar({
           className={styles.secondaryButton}
           onClick={onToggleTheme}
           aria-label="تغییر تم"
-          title="تغییر حالت تم (روشن/تاریک)"
+          title="تغییر حالت تم"
         >
-          <span aria-hidden="true">{themeMode === "light" ? "🌙" : "☀️"}</span>
+          <span aria-hidden="true">
+            {themeMode === "light" ? "🌙" : "☀️"}
+          </span>
           {themeMode === "light" ? "تم تاریک" : "تم روشن"}
         </button>
 

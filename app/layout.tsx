@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
-import { Vazirmatn } from "next/font/google";
 import "./globals.css";
+
+import "@fontsource/vazirmatn/400.css";
+import "@fontsource/vazirmatn/500.css";
+import "@fontsource/vazirmatn/700.css";
+import "@fontsource/vazirmatn/800.css";
+import "@fontsource/vazirmatn/900.css";
 
 import Topbar from "../components/layout/Topbar";
 import Footer from "../components/layout/Footer";
-
-const vazirmatn = Vazirmatn({
-  subsets: ["arabic"],
-  weight: ["400", "500", "700", "800", "900"],
-  display: "swap",
-  variable: "--font-vazir",
-});
 
 export const metadata: Metadata = {
   title: "راز زکریا | شیمی سه بعدی و هوشمند",
@@ -23,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fa" dir="rtl" className={vazirmatn.variable} suppressHydrationWarning>
-      <body className={vazirmatn.className}>
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
+      <body>
         <Topbar />
         <main>{children}</main>
         <Footer />

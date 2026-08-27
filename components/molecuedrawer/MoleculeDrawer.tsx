@@ -32,7 +32,10 @@ import type { Point } from "./chemistry/shapeUtils";
 import { getTheme } from "./theme";
 
 import MoleculeToolbar from "./MoleculeToolbar";
-import MoleculeSidebar from "./MoleculeSidebar";
+import MoleculeSidebar, {
+  type ReactionOperatorKind,
+} from "./MoleculeSidebar";
+
 import { useDocumentHistory } from "./useDocumentHistory";
 
 import {
@@ -67,6 +70,7 @@ import type {
   MechanismDocument,
   Ring,
   RingKind,
+  TextObject,
   ThemeState,
 } from "./types";
 
@@ -79,12 +83,28 @@ import { renderArrowPreview } from "./chemistry/renderArrowPreview";
 
 import styles from "./MoleculeDrawer.module.css";
 
+import {
+  DEFAULT_TEXT_TOOL_SETTINGS,
+  TEXT_COLORS,
+  TEXT_SIZES,
+  resolveFontFamily,
+  type TextToolSettingsValue,
+} from "./chemistry/text-tool/types";
+
 const STORAGE_KEY = "molecule-drawer-document";
 
 const SVG_WIDTH = 1200;
 const SVG_HEIGHT = 800;
 const ATOM_RADIUS = 18;
 const RING_DEFAULT_RADIUS = 54;
+
+const REACTION_OPERATOR_TEXT: Record<ReactionOperatorKind, string> = {
+  plus: "+",
+  heat: "Δ",
+  light: "hν",
+  bracket: "[ ]‡",
+  "equilibrium-constant": "K",
+};
 
 type MoleculeCSSProperties = CSSProperties & {
   "--md-canvas-background"?: string;
@@ -158,6 +178,11 @@ export default function MoleculeDrawer() {
     useState<Point | null>(null);
   const [draggingAtomId, setDraggingAtomId] =
     useState<string | null>(null);
+  const [textToolSettings, setTextToolSettings] =
+    useState<TextToolSettingsValue>(DEFAULT_TEXT_TOOL_SETTINGS);
+  const [pendingOperatorText, setPendingOperatorText] = useState<string | null>(
+    null,
+  );
 
   const isDraggingArrowRef = useRef(false);
   const suppressCanvasClickRef = useRef(false);
@@ -218,6 +243,10 @@ export default function MoleculeDrawer() {
 
   const setInteractionMode = useCallback(
     (mode: InteractionMode) => {
+      if (mode !== "add-text") {
+        setPendingOperatorText(null);
+      }
+
       updateDocument((currentDocument) => ({
         ...currentDocument,
         tool: {
@@ -233,6 +262,14 @@ export default function MoleculeDrawer() {
       setBondSelection([]);
     },
     [updateDocument],
+  );
+
+  const handleOperatorSelect = useCallback(
+    (operator: ReactionOperatorKind) => {
+      setPendingOperatorText(REACTION_OPERATOR_TEXT[operator]);
+      setInteractionMode("add-text");
+    },
+    [setInteractionMode],
   );
 
   const toggleTheme = useCallback(() => {
@@ -342,8 +379,13 @@ export default function MoleculeDrawer() {
         ),
         selection: {
           ...currentDocument.selection,
-          selectedIds: [],
-          primarySelectedId: null,
+          selectedIds: currentDocument.selection.selectedIds.filter(
+            (id) => id !== arrowId,
+          ),
+          primarySelectedId:
+            currentDocument.selection.primarySelectedId === arrowId
+              ? null
+              : currentDocument.selection.primarySelectedId,
         },
       }));
 
@@ -551,14 +593,16 @@ export default function MoleculeDrawer() {
     ) => {
       event.stopPropagation();
 
-      updateDocument((currentDocument) => ({
+      const selectAtom = (
+        currentDocument: typeof document,
+      ) => ({
         ...currentDocument,
         selection: {
           ...currentDocument.selection,
           selectedIds: [atomId],
           primarySelectedId: atomId,
         },
-      }));
+      });
 
       if (document.tool.mode === "erase") {
         deleteAtom(atomId);
@@ -566,14 +610,14 @@ export default function MoleculeDrawer() {
       }
 
       if (document.tool.mode === "add-charge") {
+        const chargeKind =
+          document.tool.selectedCharge ?? "formal-positive";
+
         updateDocument((currentDocument) => ({
-          ...currentDocument,
+          ...selectAtom(currentDocument),
           objects: currentDocument.objects.map((obj) =>
             obj.type === "atom" && obj.id === atomId
-              ? applyChargeToAtom(
-                  obj,
-                  currentDocument.tool.selectedCharge,
-                )
+              ? applyChargeToAtom(obj, chargeKind)
               : obj,
           ),
         }));
@@ -581,14 +625,14 @@ export default function MoleculeDrawer() {
       }
 
       if (document.tool.mode === "add-electron") {
+        const electronType =
+          document.tool.selectedElectronDisplay ?? "lone-pair";
+
         updateDocument((currentDocument) => ({
-          ...currentDocument,
+          ...selectAtom(currentDocument),
           objects: currentDocument.objects.map((obj) =>
             obj.type === "atom" && obj.id === atomId
-              ? applyElectronToAtom(
-                  obj,
-                  currentDocument.tool.selectedElectronDisplay,
-                )
+              ? applyElectronToAtom(obj, electronType)
               : obj,
           ),
         }));
@@ -596,11 +640,14 @@ export default function MoleculeDrawer() {
       }
 
       if (document.tool.mode === "select") {
+        updateDocument(selectAtom);
         setDraggingAtomId(atomId);
         return;
       }
 
       if (document.tool.mode === "add-bond") {
+        updateDocument(selectAtom);
+
         setBondSelection((currentSelection) => {
           if (currentSelection.length === 0) {
             return [atomId];
@@ -629,10 +676,7 @@ export default function MoleculeDrawer() {
                   object.id === endAtomId,
               );
 
-            if (
-              !startAtomExists ||
-              !endAtomExists
-            ) {
+            if (!startAtomExists || !endAtomExists) {
               return currentDocument;
             }
 
@@ -641,15 +685,10 @@ export default function MoleculeDrawer() {
                 (object): object is Bond =>
                   object.type === "bond" &&
                   (
-                    (
-                      object.startAtomId ===
-                        startAtomId &&
-                      object.endAtomId === endAtomId
-                    ) ||
-                    (
-                      object.startAtomId === endAtomId &&
-                      object.endAtomId === startAtomId
-                    )
+                    (object.startAtomId === startAtomId &&
+                      object.endAtomId === endAtomId) ||
+                    (object.startAtomId === endAtomId &&
+                      object.endAtomId === startAtomId)
                   ),
               );
 
@@ -685,29 +724,35 @@ export default function MoleculeDrawer() {
       }
 
       if (document.tool.mode === "add-ring") {
-        const ringKind =
-          document.tool.selectedRingKind;
+        const ringKind = document.tool.selectedRingKind;
 
-        const atomPosition =
-          document.objects.find(
-            (object): object is Atom =>
-              object.type === "atom" &&
-              object.id === atomId,
-          )?.position;
+        const atomPosition = document.objects.find(
+          (object): object is Atom =>
+            object.type === "atom" &&
+            object.id === atomId,
+        )?.position;
 
         createRingAtPoint(
           ringKind,
           atomPosition ?? { x: 0, y: 0 },
         );
+        return;
       }
+
+      updateDocument(selectAtom);
     },
     [
-      document.tool.mode,
-      document.tool.selectedRingKind,
+      document,
       document.objects,
+      document.tool.mode,
+      document.tool.selectedCharge,
+      document.tool.selectedElectronDisplay,
+      document.tool.selectedRingKind,
       updateDocument,
       deleteAtom,
+      createBond,
       createRingAtPoint,
+      setDraggingAtomId,
     ],
   );
 
@@ -815,18 +860,12 @@ export default function MoleculeDrawer() {
       setArrowStartPoint(point);
       setArrowCurrentPoint(point);
     },
-    [
-      document.tool.mode,
-      getCanvasPoint,
-    ],
+    [document.tool.mode, getCanvasPoint],
   );
 
   const handleCanvasMouseMove = useCallback(
     (event: ReactMouseEvent<SVGSVGElement>) => {
-      if (
-        document.tool.mode === "add-arrow" &&
-        arrowStartPoint
-      ) {
+      if (document.tool.mode === "add-arrow" && arrowStartPoint) {
         const point = getCanvasPoint(event, 8);
 
         if (!point) {
@@ -846,17 +885,11 @@ export default function MoleculeDrawer() {
         return;
       }
 
-      if (
-        draggingAtomId === null ||
-        document.tool.mode !== "select"
-      ) {
+      if (draggingAtomId === null || document.tool.mode !== "select") {
         return;
       }
 
-      const point = getCanvasPoint(
-        event,
-        ATOM_RADIUS,
-      );
+      const point = getCanvasPoint(event, ATOM_RADIUS);
 
       if (!point) {
         return;
@@ -864,15 +897,13 @@ export default function MoleculeDrawer() {
 
       updateDocument((currentDocument) => ({
         ...currentDocument,
-        objects: currentDocument.objects.map(
-          (object) =>
-            object.type === "atom" &&
-            object.id === draggingAtomId
-              ? {
-                  ...object,
-                  position: point,
-                }
-              : object,
+        objects: currentDocument.objects.map((object) =>
+          object.type === "atom" && object.id === draggingAtomId
+            ? {
+                ...object,
+                position: point,
+              }
+            : object,
         ),
       }));
     },
@@ -892,11 +923,7 @@ export default function MoleculeDrawer() {
       arrowCurrentPoint &&
       isDraggingArrowRef.current
     ) {
-      addMechanisticArrow(
-        arrowStartPoint,
-        arrowCurrentPoint,
-      );
-
+      addMechanisticArrow(arrowStartPoint, arrowCurrentPoint);
       suppressCanvasClickRef.current = true;
     }
 
@@ -922,47 +949,115 @@ export default function MoleculeDrawer() {
         return;
       }
 
-      if (
-        document.tool.mode ===
-        "add-functional-group"
-      ) {
-        const groupId =
-          document.tool.selectedFunctionalGroup;
+      if (document.tool.mode === "add-text") {
+        const point = getCanvasPoint(event, 8);
+
+        if (!point) {
+          return;
+        }
+
+        let enteredText = pendingOperatorText;
+
+        if (!enteredText) {
+          const promptInput = window.prompt(
+            "متن موردنظر را وارد کنید:",
+            "متن",
+          );
+
+          if (!promptInput?.trim()) {
+            return;
+          }
+
+          enteredText = promptInput.trim();
+        }
+
+        const dynamicFont = resolveFontFamily(enteredText);
+
+        const textObject: TextObject = {
+          id: crypto.randomUUID(),
+          type: "text",
+
+          selected: false,
+          locked: false,
+          visible: true,
+          zIndex: 0,
+
+          position: point,
+
+          segments: [
+            {
+              id: crypto.randomUUID(),
+              text: enteredText,
+              mode: "normal",
+              semanticType: "normal",
+            },
+          ],
+
+          fontWeight: "normal",
+          fontStyle: "normal",
+          alignment: "middle",
+          editable: true,
+          rotation: 0,
+
+          style: {
+            color: TEXT_COLORS[textToolSettings.color],
+            fillColor: "transparent",
+            strokeColor: "transparent",
+            strokeWidth: 0,
+            opacity: 1,
+            visible: true,
+            fontSize: TEXT_SIZES[textToolSettings.size],
+            fontFamily: dynamicFont,
+            scale: 1,
+            rotation: 0,
+            dashPattern: [],
+            lineCap: "round",
+            lineJoin: "round",
+          },
+        };
+
+        if (pendingOperatorText) {
+          setPendingOperatorText(null);
+        }
+
+        updateDocument((currentDocument) => ({
+          ...currentDocument,
+          objects: [...currentDocument.objects, textObject],
+          selection: {
+            ...currentDocument.selection,
+            selectedIds: [textObject.id],
+            primarySelectedId: textObject.id,
+          },
+        }));
+
+        return;
+      }
+
+      if (document.tool.mode === "add-functional-group") {
+        const groupId = document.tool.selectedFunctionalGroup;
 
         if (!groupId) {
           return;
         }
 
-        const point = getCanvasPoint(
-          event,
-          ATOM_RADIUS,
-        );
+        const point = getCanvasPoint(event, ATOM_RADIUS);
 
         if (!point) {
           return;
         }
 
-        addFunctionalGroupAtPoint(
-          groupId,
-          point,
-        );
+        addFunctionalGroupAtPoint(groupId, point);
         return;
       }
 
       if (document.tool.mode === "add-ring") {
-        const point = getCanvasPoint(
-          event,
-          RING_DEFAULT_RADIUS,
-        );
+        const point = getCanvasPoint(event, RING_DEFAULT_RADIUS);
 
         if (!point) {
           return;
         }
 
-        createRingAtPoint(
-          document.tool.selectedRingKind,
-          point,
-        );
+        createRingAtPoint(document.tool.selectedRingKind, point);
         return;
       }
 
@@ -974,26 +1069,17 @@ export default function MoleculeDrawer() {
         return;
       }
 
-      const point = getCanvasPoint(
-        event,
-        ATOM_RADIUS,
-      );
+      const point = getCanvasPoint(event, ATOM_RADIUS);
 
       if (!point) {
         return;
       }
 
-      const atom = createAtom(
-        document.tool.selectedElement,
-        point,
-      );
+      const atom = createAtom(document.tool.selectedElement, point);
 
       updateDocument((currentDocument) => ({
         ...currentDocument,
-        objects: [
-          ...currentDocument.objects,
-          atom,
-        ],
+        objects: [...currentDocument.objects, atom],
         selection: {
           ...currentDocument.selection,
           selectedIds: [atom.id],
@@ -1006,6 +1092,8 @@ export default function MoleculeDrawer() {
       document.tool.selectedElement,
       document.tool.selectedRingKind,
       document.tool.selectedFunctionalGroup,
+      pendingOperatorText,
+      textToolSettings,
       getCanvasPoint,
       createRingAtPoint,
       addFunctionalGroupAtPoint,
@@ -1015,38 +1103,27 @@ export default function MoleculeDrawer() {
   );
 
   const cssVariables = {
-    "--md-canvas-background":
-      theme.canvas.background,
+    "--md-canvas-background": theme.canvas.background,
     "--md-grid-color": theme.canvas.grid,
-    "--md-grid-strong-color":
-      theme.canvas.gridStrong,
-    "--md-surface-background":
-      theme.surface.background,
-    "--md-surface-elevated":
-      theme.surface.elevated,
+    "--md-grid-strong-color": theme.canvas.gridStrong,
+    "--md-surface-background": theme.surface.background,
+    "--md-surface-elevated": theme.surface.elevated,
     "--md-border-color": theme.surface.border,
     "--md-text-primary": theme.text.primary,
-    "--md-text-secondary":
-      theme.text.secondary,
+    "--md-text-secondary": theme.text.secondary,
     "--md-text-muted": theme.text.muted,
     "--md-title-color": theme.text.title,
-    "--md-bond-color":
-      theme.chemistry.bondColor,
-    "--md-arrow-color":
-      theme.chemistry.arrowColor,
-    "--md-arrow-selected-color":
-      isDarkMode ? "#ff8787" : "#dc2626",
-    "--md-selection-color":
-      theme.chemistry.selectionColor,
-    "--md-focus-color":
-      theme.controls.focus,
+    "--md-bond-color": theme.chemistry.bondColor,
+    "--md-arrow-color": theme.chemistry.arrowColor,
+    "--md-arrow-selected-color": isDarkMode ? "#ff8787" : "#dc2626",
+    "--md-selection-color": theme.chemistry.selectionColor,
+    "--md-focus-color": theme.controls.focus,
   } as MoleculeCSSProperties;
 
   const atoms = useMemo(
     () =>
       document.objects.filter(
-        (object): object is Atom =>
-          object.type === "atom",
+        (object): object is Atom => object.type === "atom",
       ),
     [document.objects],
   );
@@ -1054,8 +1131,7 @@ export default function MoleculeDrawer() {
   const bonds = useMemo(
     () =>
       document.objects.filter(
-        (object): object is Bond =>
-          object.type === "bond",
+        (object): object is Bond => object.type === "bond",
       ),
     [document.objects],
   );
@@ -1063,8 +1139,7 @@ export default function MoleculeDrawer() {
   const rings = useMemo(
     () =>
       document.objects.filter(
-        (object): object is Ring =>
-          object.type === "ring",
+        (object): object is Ring => object.type === "ring",
       ),
     [document.objects],
   );
@@ -1072,8 +1147,15 @@ export default function MoleculeDrawer() {
   const arrows = useMemo(
     () =>
       document.objects.filter(
-        (object): object is Arrow =>
-          object.type === "arrow",
+        (object): object is Arrow => object.type === "arrow",
+      ),
+    [document.objects],
+  );
+
+  const texts = useMemo(
+    () =>
+      document.objects.filter(
+        (object): object is TextObject => object.type === "text",
       ),
     [document.objects],
   );
@@ -1081,8 +1163,7 @@ export default function MoleculeDrawer() {
   const renderedBonds = renderBonds({
     bonds,
     atoms,
-    primarySelectedId:
-      document.selection.primarySelectedId,
+    primarySelectedId: document.selection.primarySelectedId,
     bondSelection,
     onBondClick: handleBondClick,
     styles,
@@ -1109,34 +1190,20 @@ export default function MoleculeDrawer() {
   });
 
   const arrowPreview = useMemo(() => {
-    if (
-      !arrowStartPoint ||
-      !arrowCurrentPoint
-    ) {
+    if (!arrowStartPoint || !arrowCurrentPoint) {
       return null;
     }
 
-    const arrowType =
-      document.tool.selectedArrowType;
-
-    const preset = getArrowPreset(
-      arrowType,
-    );
+    const arrowType = document.tool.selectedArrowType;
+    const preset = getArrowPreset(arrowType);
 
     const previewArrow: Arrow = {
-      ...createMechanisticArrow(
-        arrowStartPoint,
-        arrowCurrentPoint,
-        arrowType,
-      ),
+      ...createMechanisticArrow(arrowStartPoint, arrowCurrentPoint, arrowType),
       arrowHead: preset.head,
     };
 
-    const geometry =
-      getArrowHeadGeometry(previewArrow);
-
-    const isCurved =
-      preset.pathStyle === "curved";
+    const geometry = getArrowHeadGeometry(previewArrow);
+    const isCurved = preset.pathStyle === "curved";
 
     const path = isCurved
       ? getMechanisticArrowPath(previewArrow)
@@ -1144,8 +1211,7 @@ export default function MoleculeDrawer() {
 
     return {
       path,
-      headPoints:
-        getArrowHeadPoints(geometry),
+      headPoints: getArrowHeadPoints(geometry),
       arrowHead: preset.head,
       pathStyle: preset.pathStyle,
     };
@@ -1156,7 +1222,7 @@ export default function MoleculeDrawer() {
   ]);
 
   const handleChargeChange = (
-    charge: ChargeKind,
+    charge: ChargeKind = "formal-positive",
   ) => {
     updateDocument((currentDocument) => ({
       ...currentDocument,
@@ -1275,9 +1341,7 @@ export default function MoleculeDrawer() {
 
   const canvasClassName = [
     styles.canvasWrapper,
-    document.viewport.showGrid
-      ? styles.gridVisible
-      : styles.gridHidden,
+    document.viewport.showGrid ? styles.gridVisible : styles.gridHidden,
   ]
     .filter(Boolean)
     .join(" ");
@@ -1373,6 +1437,8 @@ export default function MoleculeDrawer() {
           onToggleTheme={toggleTheme}
           onUndo={handleUndo}
           onRedo={handleRedo}
+          textToolSettings={textToolSettings}
+          onTextToolSettingsChange={setTextToolSettings}
         />
 
         <div className={styles.editorLayout}>
@@ -1387,6 +1453,7 @@ export default function MoleculeDrawer() {
               onElectronChange={handleElectronChange}
               onArrowChange={handleArrowChange}
               onFunctionalGroupChange={handleFunctionalGroupChange}
+              onOperatorSelect={handleOperatorSelect}
               onToggleGrid={toggleGrid}
               onToggleSnap={toggleSnapToGrid}
               onClearSelection={clearSelection}
@@ -1429,6 +1496,83 @@ export default function MoleculeDrawer() {
               <g className={styles.arrowsLayer}>{renderedArrows}</g>
               <g className={styles.atomsLayer}>{renderedAtoms}</g>
 
+              <g className={styles.textLayer}>
+                {texts.map((textObject) => {
+                  const isSelected =
+                    document.selection.primarySelectedId === textObject.id;
+
+                  const textContent = textObject.segments
+                    .map((segment) => segment.text)
+                    .join("");
+
+                  const textColor =
+                    textObject.style.color || "var(--md-text-primary)";
+
+                  const finalFontFamily =
+                    textObject.style.fontFamily || resolveFontFamily(textContent);
+
+                  return (
+                    <text
+                      key={textObject.id}
+                      x={textObject.position.x}
+                      y={textObject.position.y}
+                      fill={textColor}
+                      fontSize={textObject.style.fontSize}
+                      fontFamily={finalFontFamily}
+                      fontWeight={textObject.fontWeight}
+                      fontStyle={textObject.fontStyle}
+                      opacity={textObject.style.opacity}
+                      textAnchor={textObject.alignment}
+                      dominantBaseline="middle"
+                      pointerEvents="all"
+                      style={{
+                        cursor:
+                          document.tool.mode === "erase"
+                            ? "not-allowed"
+                            : "pointer",
+                        userSelect: "none",
+                      }}
+                      stroke={
+                        isSelected
+                          ? "var(--md-selection-color)"
+                          : "none"
+                      }
+                      strokeWidth={isSelected ? 2 : 0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+
+                        if (document.tool.mode === "erase") {
+                          updateDocument((currentDocument) => ({
+                            ...currentDocument,
+                            objects: currentDocument.objects.filter(
+                              (object) => object.id !== textObject.id,
+                            ),
+                            selection: {
+                              ...currentDocument.selection,
+                              selectedIds: [],
+                              primarySelectedId: null,
+                            },
+                          }));
+
+                          return;
+                        }
+
+                        updateDocument((currentDocument) => ({
+                          ...currentDocument,
+                          selection: {
+                            ...currentDocument.selection,
+                            selectedIds: [textObject.id],
+                            primarySelectedId: textObject.id,
+                          },
+                        }));
+                      }}
+                    >
+                      {textContent}
+                    </text>
+                  );
+                })}
+              </g>
+
               {renderArrowPreview({
                 preview: arrowPreview,
                 className: styles.arrowPreview,
@@ -1451,15 +1595,19 @@ export default function MoleculeDrawer() {
             <div className={styles.canvasHint}>
               {document.tool.mode === "add-arrow"
                 ? "برای رسم فلش، روی بوم کلیک کرده و بکشید."
-                : document.tool.mode === "add-atom"
-                  ? "برای افزودن اتم روی بوم کلیک کنید."
-                  : document.tool.mode === "add-bond"
-                    ? "دو اتم را به‌ترتیب انتخاب کنید."
-                    : document.tool.mode === "add-charge"
-                      ? "روی اتم مورد نظر کلیک کنید تا بار الکتریکی اعمال شود."
-                      : document.tool.mode === "add-electron"
-                        ? "روی اتم مورد نظر کلیک کنید تا نمایش جفت‌الکترون/رادیکال اعمال شود."
-                        : "ابزار موردنظر را از نوار ابزار یا سایدبار انتخاب کنید."}
+                : document.tool.mode === "add-text"
+                  ? pendingOperatorText
+                    ? `عملگر «${pendingOperatorText}» انتخاب شده است. روی بوم کلیک کنید تا درج شود.`
+                    : "برای درج متن روی بوم کلیک کنید؛ برای تنظیم رنگ و اندازه روی دکمه متن راست‌کلیک کنید."
+                  : document.tool.mode === "add-atom"
+                    ? "برای افزودن اتم روی بوم کلیک کنید."
+                    : document.tool.mode === "add-bond"
+                      ? "دو اتم را به‌ترتیب انتخاب کنید."
+                      : document.tool.mode === "add-charge"
+                        ? "روی اتم مورد نظر کلیک کنید تا بار الکتریکی اعمال شود."
+                        : document.tool.mode === "add-electron"
+                          ? "روی اتم مورد نظر کلیک کنید تا نمایش جفت‌الکترون/رادیکال اعمال شود."
+                          : "ابزار موردنظر را از نوار ابزار یا سایدبار انتخاب کنید."}
             </div>
           </section>
         </div>
