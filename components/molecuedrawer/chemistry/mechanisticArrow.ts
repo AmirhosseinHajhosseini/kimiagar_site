@@ -13,7 +13,6 @@ const DEFAULT_ARROW_Z_INDEX = 10;
 const DEFAULT_CURVE_OFFSET = 50;
 const DEFAULT_ARROW_HEAD_SIZE = 14;
 const DEFAULT_ARROW_MINIMUM_LENGTH = 25;
-
 const DEFAULT_ARROW_STYLE: StyleConfiguration = {
   color: DEFAULT_ARROW_COLOR,
   fillColor: "none",
@@ -29,6 +28,7 @@ const DEFAULT_ARROW_STYLE: StyleConfiguration = {
   lineJoin: "round",
   visible: true,
 };
+
 
 function createId(): string {
   if (
@@ -51,10 +51,7 @@ function normalizeVector(x: number, y: number): Point {
   const length = Math.hypot(x, y);
 
   if (length === 0) {
-    return {
-      x: 1,
-      y: 0,
-    };
+    return { x: 1, y: 0 };
   }
 
   return {
@@ -131,10 +128,7 @@ export function getDefaultArrowControlPoint(
 
   const adaptiveOffset = Math.min(
     Math.abs(curveOffset),
-    Math.max(
-      20,
-      distanceBetween(start, end) * 0.45,
-    ),
+    Math.max(20, distanceBetween(start, end) * 0.45),
   );
 
   return {
@@ -164,10 +158,9 @@ export function createMechanisticArrow(
       curveDirection,
     );
 
-  const arrow: Arrow = {
+  return {
     id: createId(),
     type: "arrow",
-
     selected: false,
     locked: false,
     visible: true,
@@ -190,12 +183,13 @@ export function createMechanisticArrow(
       y: end.y,
     },
 
-    controlPoints: [
+        controlPoints: [
       {
         x: controlPoint.x,
         y: controlPoint.y,
       },
     ],
+
 
     curvature: curveOffset,
 
@@ -215,8 +209,6 @@ export function createMechanisticArrow(
 
     backgroundContrast: false,
   };
-
-  return arrow;
 }
 
 export function getQuadraticBezierPoint(
@@ -247,6 +239,7 @@ export function getQuadraticBezierTangent(
   end: Point,
   t: number,
 ): Point {
+
   const safeT = Math.max(0, Math.min(1, t));
 
   const tangentX =
@@ -292,15 +285,13 @@ export function getArrowHeadGeometry(
   const isFishhook =
     arrow.arrowHead === "fishhook";
 
-  const headLength =
-    isFishhook
-      ? arrow.arrowHeadSize * 0.85
-      : arrow.arrowHeadSize;
+  const headLength = isFishhook
+    ? arrow.arrowHeadSize * 0.85
+    : arrow.arrowHeadSize;
 
-  const headWidth =
-    isFishhook
-      ? arrow.arrowHeadSize * 0.5
-      : arrow.arrowHeadSize * 0.75;
+  const headWidth = isFishhook
+    ? arrow.arrowHeadSize * 0.5
+    : arrow.arrowHeadSize * 0.75;
 
   const base: Point = {
     x: arrow.end.x - tangent.x * headLength,
@@ -358,6 +349,7 @@ export function getMechanisticArrowPath(
     `${arrow.end.x} ${arrow.end.y}`,
   ].join(" ");
 }
+
 
 export function isValidMechanisticArrow(
   start: Point,

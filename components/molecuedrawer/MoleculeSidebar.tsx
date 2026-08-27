@@ -193,7 +193,7 @@ export default function MoleculeSidebar({
   onOperatorSelect,
   onToggleGrid,
   onToggleSnap,
-  onClearSelection,
+  onClearSelection: _onClearSelection,
 }: MoleculeSidebarProps) {
   const [paletteSelection, setPaletteSelection] =
     useState<PaletteSelection>(null);
@@ -207,16 +207,19 @@ export default function MoleculeSidebar({
 
   const handleElementChange = (element: ElementSymbol) => {
     setPaletteSelection(null);
+    onModeChange("add-atom");
     onElementChange(element);
   };
 
   const handleBondChange = (bondType: BondType, bondOrder: BondOrder) => {
     setPaletteSelection({ type: "bond", id: bondType });
+    onModeChange("add-bond");
     onBondChange(bondType, bondOrder);
   };
 
   const handleRingChange = (ringKind: RingKind) => {
     setPaletteSelection({ type: "ring", id: ringKind });
+    onModeChange("add-ring");
     onRingChange(ringKind);
   };
 
@@ -228,11 +231,13 @@ export default function MoleculeSidebar({
 
   const handleChargeChange = (charge: ChargeKind) => {
     setPaletteSelection({ type: "charge", id: charge });
+    onModeChange("add-charge");
     onChargeChange(charge);
   };
 
   const handleElectronChange = (electron: ElectronDisplay) => {
     setPaletteSelection({ type: "electron", id: electron });
+    onModeChange("add-electron");
     onElectronChange(electron);
   };
 
@@ -287,6 +292,35 @@ export default function MoleculeSidebar({
                 <span className={styles.elementName}>
                   {elementData.persianName}
                 </span>
+              </button>
+            );
+          })}
+        </div>
+      </SidebarSection>
+
+      <SidebarSection title="پیوندها">
+        <div className={styles.elementGrid}>
+          {BOND_TYPES.map((bond) => {
+            const isActive =
+              document.tool.mode === "add-bond" &&
+              document.tool.selectedBondType === bond.id;
+
+            return (
+              <button
+                key={bond.id}
+                type="button"
+                className={`${styles.elementButton} ${
+                  isActive ? styles.elementButtonActive : ""
+                }`}
+                onClick={() => handleBondChange(bond.id, bond.order)}
+                title={bond.label}
+                aria-label={bond.label}
+                aria-pressed={isActive}
+              >
+                <span className={styles.elementSymbol} aria-hidden="true">
+                  {bond.symbol}
+                </span>
+                <span className={styles.elementName}>{bond.label}</span>
               </button>
             );
           })}

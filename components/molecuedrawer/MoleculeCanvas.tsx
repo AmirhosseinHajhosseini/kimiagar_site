@@ -7,6 +7,12 @@ import {
 } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
+import {
+  getChargeAtomPatch,
+  getElectronAtomPatch,
+  getChargeDisplayText,
+} from "./chemistry/chargeAndElectronUtils";
+
 import type {
   Arrow,
   Atom,
@@ -141,8 +147,6 @@ const getAtomPalette = (
     text: fallbackText?.trim() || "#FFFFFF",
   };
 };
-
-
 
 type BondLine = {
   x1: number;
@@ -406,10 +410,7 @@ export default function MoleculeCanvas({
   onAddArrow,
   onAddTextObject,
 }: MoleculeCanvasProps) {
-  const svgRef = useRef<SVGSVGElement | null>(
-    null
-  );
-
+  const svgRef = useRef<SVGSVGElement | null>(null);
   const isDraggingArrowRef = useRef(false);
 
   const [
@@ -483,75 +484,14 @@ export default function MoleculeCanvas({
     const mode = document.tool.mode;
 
     if (mode === "add-charge") {
-      const charge = document.tool.selectedCharge;
-
-      if (!charge || charge === "remove") {
-        onUpdateAtom(atom.id, {
-          formalCharge: 0,
-          partialCharge: "none",
-        });
-      } else if (charge === "formal-positive") {
-        onUpdateAtom(atom.id, {
-          formalCharge: 1,
-          partialCharge: "none",
-        });
-      } else if (charge === "formal-negative") {
-        onUpdateAtom(atom.id, {
-          formalCharge: -1,
-          partialCharge: "none",
-        });
-      } else if (
-        charge === "formal-positive-double"
-      ) {
-        onUpdateAtom(atom.id, {
-          formalCharge: 2,
-          partialCharge: "none",
-        });
-      } else if (
-        charge === "formal-negative-double"
-      ) {
-        onUpdateAtom(atom.id, {
-          formalCharge: -2,
-          partialCharge: "none",
-        });
-      } else if (charge === "partial-positive") {
-        onUpdateAtom(atom.id, {
-          formalCharge: 0,
-          partialCharge: "partial-positive",
-        });
-      } else if (charge === "partial-negative") {
-        onUpdateAtom(atom.id, {
-          formalCharge: 0,
-          partialCharge: "partial-negative",
-        });
-      }
-
+      const patch = getChargeAtomPatch(document.tool.selectedCharge);
+      onUpdateAtom(atom.id, patch);
       return;
     }
 
     if (mode === "add-electron") {
-      const electron =
-        document.tool.selectedElectronDisplay;
-
-      if (electron === "single-electron") {
-        onUpdateAtom(atom.id, {
-          electronDisplay: "single-electron",
-          radical: "single",
-        });
-      } else if (electron === "lone-pair") {
-        onUpdateAtom(atom.id, {
-          electronDisplay: "lone-pair",
-          radical: "none",
-          showLonePairs: true,
-        });
-      } else {
-        onUpdateAtom(atom.id, {
-          electronDisplay: "none",
-          radical: "none",
-          showLonePairs: false,
-        });
-      }
-
+      const patch = getElectronAtomPatch(document.tool.selectedElectronDisplay);
+      onUpdateAtom(atom.id, patch);
       return;
     }
 
@@ -754,9 +694,8 @@ export default function MoleculeCanvas({
       bondSelection.includes(bond.id);
 
     const strokeColor = isSelected
-  ? "var(--md-arrow-selected-color)"
-  : "var(--md-arrow-color)";
-
+      ? "var(--md-arrow-selected-color)"
+      : "var(--md-arrow-color)";
 
     const commonProps = {
       stroke: strokeColor,
@@ -940,155 +879,134 @@ export default function MoleculeCanvas({
     );
   });
 
-const renderedAtoms = atoms.map((atom) => {
-  const elementData = getElementData(atom.element);
+  const renderedAtoms = atoms.map((atom) => {
+    const elementData = getElementData(atom.element);
 
-  const atomPalette = getAtomPalette(
-    atom.element,
-    elementData.defaultColor,
-    elementData.defaultTextColor
-  );
+    const atomPalette = getAtomPalette(
+      atom.element,
+      elementData.defaultColor,
+      elementData.defaultTextColor
+    );
 
-  const isSelected =
-    document.selection.primarySelectedId === atom.id;
+    const isSelected =
+      document.selection.primarySelectedId === atom.id;
 
-  const isBondStart =
-    bondSelection[0] === atom.id;
+    const isBondStart =
+      bondSelection[0] === atom.id;
 
-  let chargeSymbol = "";
+    const chargeSymbol = getChargeDisplayText(atom);
 
-  if (atom.formalCharge === 1) {
-    chargeSymbol = "+";
-  } else if (atom.formalCharge === -1) {
-    chargeSymbol = "−";
-  } else if (atom.formalCharge === 2) {
-    chargeSymbol = "2+";
-  } else if (atom.formalCharge === -2) {
-    chargeSymbol = "2−";
-  } else if (
-    atom.partialCharge === "partial-positive"
-  ) {
-    chargeSymbol = "δ+";
-  } else if (
-    atom.partialCharge === "partial-negative"
-  ) {
-    chargeSymbol = "δ−";
-  }
-
-  return (
-    <g
-      key={atom.id}
-      transform={`translate(${atom.position.x} ${atom.position.y})`}
-      onMouseDown={(event) => {
-        handleAtomInteract(atom, event);
-      }}
-      className={
-        isBondStart
-          ? styles.atomSelected
-          : undefined
-      }
-      style={{ cursor: "pointer" }}
-    >
-      <circle
-        r={ATOM_RADIUS + 8}
-        fill="transparent"
-        pointerEvents="all"
-      />
-
-      {isSelected && (
-        <circle
-          r={ATOM_RADIUS + 4}
-          fill="none"
-          stroke="var(--md-selection-color)"
-          strokeWidth={3}
-          opacity={0.9}
-          pointerEvents="none"
-        />
-      )}
-
-      <circle
-        r={ATOM_RADIUS}
-        fill={atomPalette.fill}
-        stroke={atomPalette.fill}
-        strokeWidth={2}
-        pointerEvents="none"
-      />
-
-      <text
-        x="0"
-        y="7"
-        textAnchor="middle"
-        fill={atomPalette.text}
-        fontSize={atom.labelSize}
-        fontWeight="700"
-        pointerEvents="none"
+    return (
+      <g
+        key={atom.id}
+        transform={`translate(${atom.position.x} ${atom.position.y})`}
+        onMouseDown={(event) => {
+          handleAtomInteract(atom, event);
+        }}
+        className={
+          isBondStart
+            ? styles.atomSelected
+            : undefined
+        }
+        style={{ cursor: "pointer" }}
       >
-        {atom.element}
-      </text>
+        <circle
+          r={ATOM_RADIUS + 8}
+          fill="transparent"
+          pointerEvents="all"
+        />
 
-      {/* نشان بار اتم؛ متن سفید روی دایره قرمز باید باقی بماند */}
-      {chargeSymbol && (
-        <g transform="translate(14, -12)">
+        {isSelected && (
           <circle
-            r="8"
-            fill="#B91C1C"
+            r={ATOM_RADIUS + 4}
+            fill="none"
+            stroke="var(--md-selection-color)"
+            strokeWidth={3}
+            opacity={0.9}
             pointerEvents="none"
           />
+        )}
 
-          <text
-            x="0"
-            y="3.5"
-            textAnchor="middle"
-            fill="#FFFFFF"
-            fontSize="10"
-            fontWeight="bold"
-            pointerEvents="none"
-          >
-            {chargeSymbol}
-          </text>
-        </g>
-      )}
+        <circle
+          r={ATOM_RADIUS}
+          fill={atomPalette.fill}
+          stroke={atomPalette.fill}
+          strokeWidth={2}
+          pointerEvents="none"
+        />
 
-      {/* جفت‌الکترون ناپیوندی */}
-      {(atom.electronDisplay === "lone-pair" ||
-        atom.showLonePairs) && (
-        <g
-          transform="translate(0, -22)"
+        <text
+          x="0"
+          y="7"
+          textAnchor="middle"
+          fill={atomPalette.text}
+          fontSize={atom.labelSize}
+          fontWeight="700"
           pointerEvents="none"
         >
+          {atom.element}
+        </text>
+
+        {/* نشان بار اتم (متن سفید روی دایره قرمز) */}
+        {chargeSymbol && (
+          <g transform="translate(14, -12)">
+            <circle
+              r="8"
+              fill="#B91C1C"
+              pointerEvents="none"
+            />
+
+            <text
+              x="0"
+              y="3.5"
+              textAnchor="middle"
+              fill="#FFFFFF"
+              fontSize="10"
+              fontWeight="bold"
+              pointerEvents="none"
+            >
+              {chargeSymbol}
+            </text>
+          </g>
+        )}
+
+        {/* جفت‌الکترون ناپیوندی */}
+        {(atom.electronDisplay === "lone-pair" ||
+          atom.showLonePairs) && (
+          <g
+            transform="translate(0, -22)"
+            pointerEvents="none"
+          >
+            <circle
+              cx="-3"
+              cy="0"
+              r="2"
+              fill="#2563EB"
+            />
+
+            <circle
+              cx="3"
+              cy="0"
+              r="2"
+              fill="#2563EB"
+            />
+          </g>
+        )}
+
+        {/* رادیکال / تک‌الکترون */}
+        {(atom.electronDisplay === "single-electron" ||
+          atom.radical === "single") && (
           <circle
-            cx="-3"
-            cy="0"
-            r="2"
-            fill="#2563EB"
+            cx="0"
+            cy="-22"
+            r="2.5"
+            fill="#DC2626"
+            pointerEvents="none"
           />
-
-          <circle
-            cx="3"
-            cy="0"
-            r="2"
-            fill="#2563EB"
-          />
-        </g>
-      )}
-
-      {/* رادیکال / تک‌الکترون */}
-      {(atom.electronDisplay ===
-        "single-electron" ||
-        atom.radical === "single") && (
-        <circle
-          cx="0"
-          cy="-22"
-          r="2.5"
-          fill="#DC2626"
-          pointerEvents="none"
-        />
-      )}
-    </g>
-  );
-});
-
-
+        )}
+      </g>
+    );
+  });
 
   const renderedArrows = arrows.map((arrow) => {
     const isSelected =

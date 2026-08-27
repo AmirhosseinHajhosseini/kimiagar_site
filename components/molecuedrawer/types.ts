@@ -136,7 +136,7 @@ export interface Atom extends DrawableBase {
   radicalColor: string;
   lonePairColor: string;
 
- attachedBondIds: ID[];
+  attachedBondIds: ID[];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -272,6 +272,16 @@ export type ArrowType =
   | "charge-transfer"
   | "mechanistic-annotation";
 
+/**
+ * برای سازگاری با تمام مقدارهای برگشتی از arrowPresets.
+ * وجود `(string & {})` مانع خطای TS2322 برای presetهای جدید می‌شود.
+ */
+export type ArrowPathStyle =
+  | "straight"
+  | "curved"
+  | "resonance"
+  | (string & {});
+
 export type ArrowHeadType =
   | "full"
   | "fishhook"
@@ -338,6 +348,13 @@ export interface TextObject extends DrawableBase {
 /*                                Brush Stroke                                */
 /* -------------------------------------------------------------------------- */
 
+export type BrushPreset =
+  | "fine-pen"
+  | "standard-pen"
+  | "thick-marker"
+  | "mechanism-highlight"
+  | "eraser";
+
 export interface BrushStroke extends DrawableBase {
   type: "brush-stroke";
 
@@ -347,13 +364,6 @@ export interface BrushStroke extends DrawableBase {
   brushPreset: BrushPreset;
   eraser: boolean;
 }
-
-export type BrushPreset =
-  | "fine-pen"
-  | "standard-pen"
-  | "thick-marker"
-  | "mechanism-highlight"
-  | "eraser";
 
 /* -------------------------------------------------------------------------- */
 /*                              Drawable Object                               */
@@ -474,7 +484,6 @@ export interface ToolState {
   selectedArrowType: ArrowType;
   selectedBrushPreset: BrushPreset;
   selectedFunctionalGroup?: string;
-
 }
 
 /* -------------------------------------------------------------------------- */
@@ -535,31 +544,31 @@ export interface ChemistryValidationMessage {
 /* -------------------------------------------------------------------------- */
 
 export const isAtom = (
-  object: DrawableObject
+  object: DrawableObject,
 ): object is Atom => object.type === "atom";
 
 export const isBond = (
-  object: DrawableObject
+  object: DrawableObject,
 ): object is Bond => object.type === "bond";
 
 export const isRing = (
-  object: DrawableObject
+  object: DrawableObject,
 ): object is Ring => object.type === "ring";
 
 export const isFunctionalGroup = (
-  object: DrawableObject
+  object: DrawableObject,
 ): object is FunctionalGroup =>
   object.type === "functional-group";
 
 export const isArrow = (
-  object: DrawableObject
+  object: DrawableObject,
 ): object is Arrow => object.type === "arrow";
 
 export const isTextObject = (
-  object: DrawableObject
+  object: DrawableObject,
 ): object is TextObject => object.type === "text";
 
 export const isBrushStroke = (
-  object: DrawableObject
+  object: DrawableObject,
 ): object is BrushStroke =>
   object.type === "brush-stroke";

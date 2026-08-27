@@ -11,33 +11,24 @@ import {
 import type {
   CSSProperties,
   MouseEvent as ReactMouseEvent,
-  ReactNode,
 } from "react";
 
 import { createInitialDocument } from "./chemistry/initialState";
 import { createAtom, createBond } from "./chemistry/factories";
+import {
+  applyChargeToAtom,
+  applyElectronToAtom,
+} from "./chemistry/chargeUtils";
 
 import {
   createMechanisticArrow,
+  isValidMechanisticArrow,
   getArrowHeadGeometry,
   getArrowHeadPoints,
   getMechanisticArrowPath,
-  isValidMechanisticArrow,
 } from "./chemistry/mechanisticArrow";
 
-import {
-  getBondLines,
-  getBondTypeLabel,
-  getHashedWedgeLines,
-  getRingLabel,
-  getSimpleBondOrder,
-  getWavyPoints,
-  getWedgePoints,
-} from "./chemistry/shapeUtils";
-
 import type { Point } from "./chemistry/shapeUtils";
-
-import { getElementData } from "./chemistry/atomData";
 import { getTheme } from "./theme";
 
 import MoleculeToolbar from "./MoleculeToolbar";
@@ -65,7 +56,6 @@ import {
 import type {
   Atom,
   Arrow,
-  ArrowHeadType,
   ArrowType,
   Bond,
   BondOrder,
@@ -80,6 +70,13 @@ import type {
   ThemeState,
 } from "./types";
 
+import { renderBonds } from "./chemistry/renderBonds";
+import { renderRings } from "./chemistry/renderRings";
+import { renderArrows } from "./chemistry/renderArrows";
+import { renderAtoms } from "./chemistry/renderAtoms";
+import { CanvasDefs } from "./chemistry/CanvasDefs";
+import { renderArrowPreview } from "./chemistry/renderArrowPreview";
+
 import styles from "./MoleculeDrawer.module.css";
 
 const STORAGE_KEY = "molecule-drawer-document";
@@ -88,111 +85,6 @@ const SVG_WIDTH = 1200;
 const SVG_HEIGHT = 800;
 const ATOM_RADIUS = 18;
 const RING_DEFAULT_RADIUS = 54;
-
-type AtomPalette = {
-  fill: string;
-  text: string;
-};
-
-/**
- * رنگ‌های نمایش اتم بر پایه استاندارد رایج CPK.
- * text رنگ نماد عنصر داخل دایره است.
- */
-const ELEMENT_PALETTES: Record<string, AtomPalette> = {
-  H: {
-    fill: "#E2E8F0",
-    text: "#1E293B",
-  },
-  C: {
-    fill: "#334155",
-    text: "#FFFFFF",
-  },
-  N: {
-    fill: "#2563EB",
-    text: "#FFFFFF",
-  },
-  O: {
-    fill: "#DC2626",
-    text: "#FFFFFF",
-  },
-  F: {
-    fill: "#16A34A",
-    text: "#FFFFFF",
-  },
-  Cl: {
-    fill: "#059669",
-    text: "#FFFFFF",
-  },
-  Br: {
-    fill: "#92400E",
-    text: "#FFFFFF",
-  },
-  I: {
-    fill: "#7C3AED",
-    text: "#FFFFFF",
-  },
-  S: {
-    fill: "#EAB308",
-    text: "#1F2937",
-  },
-  P: {
-    fill: "#EA580C",
-    text: "#FFFFFF",
-  },
-  B: {
-    fill: "#D97706",
-    text: "#FFFFFF",
-  },
-  Si: {
-    fill: "#64748B",
-    text: "#FFFFFF",
-  },
-  Na: {
-    fill: "#7C3AED",
-    text: "#FFFFFF",
-  },
-  K: {
-    fill: "#8B5CF6",
-    text: "#FFFFFF",
-  },
-  Ca: {
-    fill: "#22C55E",
-    text: "#FFFFFF",
-  },
-  Mg: {
-    fill: "#65A30D",
-    text: "#FFFFFF",
-  },
-  Fe: {
-    fill: "#B45309",
-    text: "#FFFFFF",
-  },
-  Cu: {
-    fill: "#C2410C",
-    text: "#FFFFFF",
-  },
-  Zn: {
-    fill: "#94A3B8",
-    text: "#1F2937",
-  },
-};
-
-/**
- * اگر عنصری در لیست بالا نبود، از رنگ‌های atomData استفاده می‌شود.
- */
-const getAtomPalette = (
-  element: string,
-  fallbackFill: string,
-  fallbackText: string
-): AtomPalette => {
-  return (
-    ELEMENT_PALETTES[element] ?? {
-      fill: fallbackFill || "#64748B",
-      text: fallbackText || "#FFFFFF",
-    }
-  );
-};
-
 
 type MoleculeCSSProperties = CSSProperties & {
   "--md-canvas-background"?: string;
@@ -271,11 +163,6 @@ export default function MoleculeDrawer() {
   const suppressCanvasClickRef = useRef(false);
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  /*
-   * document در این کامپوننت، state برنامه است؛
-   * بنابراین document.theme.mode صحیح است.
-   * فقط نباید از window.document.theme.mode استفاده شود.
-   */
   const isDarkMode = document.theme.mode === "dark";
 
   const theme = useMemo(
@@ -340,71 +227,6 @@ export default function MoleculeDrawer() {
         contextMenu: {
           ...currentDocument.contextMenu,
           isOpen: false,
-        },
-      }));
-
-      setBondSelection([]);
-    },
-    [updateDocument],
-  );
-
-  const setSelectedBond = useCallback(
-    (bondType: BondType, bondOrder: BondOrder) => {
-      updateDocument((currentDocument) => ({
-        ...currentDocument,
-        tool: {
-          ...currentDocument.tool,
-          mode: "add-bond",
-          selectedBondType: bondType,
-          selectedBondOrder: bondOrder,
-        },
-      }));
-
-      setBondSelection([]);
-    },
-    [updateDocument],
-  );
-
-  const setSelectedElement = useCallback(
-    (element: ElementSymbol) => {
-      updateDocument((currentDocument) => ({
-        ...currentDocument,
-        tool: {
-          ...currentDocument.tool,
-          selectedElement: element,
-          mode: "add-atom",
-        },
-      }));
-
-      setBondSelection([]);
-    },
-    [updateDocument],
-  );
-
-  const setSelectedRing = useCallback(
-    (ringKind: RingKind) => {
-      updateDocument((currentDocument) => ({
-        ...currentDocument,
-        tool: {
-          ...currentDocument.tool,
-          selectedRingKind: ringKind,
-          mode: "add-ring",
-        },
-      }));
-
-      setBondSelection([]);
-    },
-    [updateDocument],
-  );
-
-  const handleFunctionalGroupChange = useCallback(
-    (groupId: string) => {
-      updateDocument((currentDocument) => ({
-        ...currentDocument,
-        tool: {
-          ...currentDocument.tool,
-          mode: "add-functional-group",
-          selectedFunctionalGroup: groupId,
         },
       }));
 
@@ -722,40 +544,6 @@ export default function MoleculeDrawer() {
     ],
   );
 
-  const deleteSelected = useCallback(() => {
-    const selectedId =
-      document.selection.primarySelectedId;
-
-    if (!selectedId) {
-      return;
-    }
-
-    const target = document.objects.find(
-      (object) => object.id === selectedId,
-    );
-
-    if (!target) {
-      return;
-    }
-
-    if (target.type === "atom") {
-      deleteAtom(selectedId);
-    } else if (target.type === "bond") {
-      deleteBond(selectedId);
-    } else if (target.type === "ring") {
-      deleteRing(selectedId, "simple");
-    } else if (target.type === "arrow") {
-      deleteArrow(selectedId);
-    }
-  }, [
-    document.selection.primarySelectedId,
-    document.objects,
-    deleteAtom,
-    deleteBond,
-    deleteRing,
-    deleteArrow,
-  ]);
-
   const handleAtomMouseDown = useCallback(
     (
       event: ReactMouseEvent<SVGGElement>,
@@ -774,6 +562,36 @@ export default function MoleculeDrawer() {
 
       if (document.tool.mode === "erase") {
         deleteAtom(atomId);
+        return;
+      }
+
+      if (document.tool.mode === "add-charge") {
+        updateDocument((currentDocument) => ({
+          ...currentDocument,
+          objects: currentDocument.objects.map((obj) =>
+            obj.type === "atom" && obj.id === atomId
+              ? applyChargeToAtom(
+                  obj,
+                  currentDocument.tool.selectedCharge,
+                )
+              : obj,
+          ),
+        }));
+        return;
+      }
+
+      if (document.tool.mode === "add-electron") {
+        updateDocument((currentDocument) => ({
+          ...currentDocument,
+          objects: currentDocument.objects.map((obj) =>
+            obj.type === "atom" && obj.id === atomId
+              ? applyElectronToAtom(
+                  obj,
+                  currentDocument.tool.selectedElectronDisplay,
+                )
+              : obj,
+          ),
+        }));
         return;
       }
 
@@ -1196,48 +1014,6 @@ export default function MoleculeDrawer() {
     ],
   );
 
-  const selectedObject = document.objects.find(
-    (object) =>
-      object.id ===
-      document.selection.primarySelectedId,
-  );
-
-  const selectedAtom =
-    selectedObject?.type === "atom"
-      ? selectedObject
-      : null;
-
-  const selectedBond =
-    selectedObject?.type === "bond"
-      ? selectedObject
-      : null;
-
-  const selectedRing =
-    selectedObject?.type === "ring"
-      ? selectedObject
-      : null;
-
-  const selectedArrow =
-    selectedObject?.type === "arrow"
-      ? selectedObject
-      : null;
-
-  const selectedStartAtom = selectedBond
-    ? document.objects.find(
-        (object): object is Atom =>
-          object.type === "atom" &&
-          object.id === selectedBond.startAtomId,
-      )
-    : null;
-
-  const selectedEndAtom = selectedBond
-    ? document.objects.find(
-        (object): object is Atom =>
-          object.type === "atom" &&
-          object.id === selectedBond.endAtomId,
-      )
-    : null;
-
   const cssVariables = {
     "--md-canvas-background":
       theme.canvas.background,
@@ -1266,972 +1042,70 @@ export default function MoleculeDrawer() {
       theme.controls.focus,
   } as MoleculeCSSProperties;
 
-  const atoms = document.objects.filter(
-    (object): object is Atom =>
-      object.type === "atom",
+  const atoms = useMemo(
+    () =>
+      document.objects.filter(
+        (object): object is Atom =>
+          object.type === "atom",
+      ),
+    [document.objects],
   );
 
-  const bonds = document.objects.filter(
-    (object): object is Bond =>
-      object.type === "bond",
+  const bonds = useMemo(
+    () =>
+      document.objects.filter(
+        (object): object is Bond =>
+          object.type === "bond",
+      ),
+    [document.objects],
   );
 
-  const rings = document.objects.filter(
-    (object): object is Ring =>
-      object.type === "ring",
+  const rings = useMemo(
+    () =>
+      document.objects.filter(
+        (object): object is Ring =>
+          object.type === "ring",
+      ),
+    [document.objects],
   );
 
-  const arrows = document.objects.filter(
-    (object): object is Arrow =>
-      object.type === "arrow",
+  const arrows = useMemo(
+    () =>
+      document.objects.filter(
+        (object): object is Arrow =>
+          object.type === "arrow",
+      ),
+    [document.objects],
   );
 
-  const renderedBonds = bonds.map((bond) => {
-    const atomA = atoms.find(
-      (atom) => atom.id === bond.startAtomId,
-    );
-
-    const atomB = atoms.find(
-      (atom) => atom.id === bond.endAtomId,
-    );
-
-    if (!atomA || !atomB) {
-      return null;
-    }
-
-    const start = atomA.position;
-    const end = atomB.position;
-
-    const isSelected =
-      document.selection.primarySelectedId ===
-        bond.id ||
-      bondSelection.includes(bond.id);
-
-    const strokeColor = isSelected
-      ? "var(--md-selection-color)"
-      : bond.style.strokeColor;
-
-    const commonLineProps = {
-      stroke: strokeColor,
-      strokeWidth: bond.style.strokeWidth,
-      strokeLinecap: bond.style.lineCap,
-      strokeLinejoin: bond.style.lineJoin,
-      opacity: bond.style.opacity,
-    };
-
-    const renderBondShape = () => {
-      if (bond.bondType === "solid-wedge") {
-        const points = getWedgePoints(
-          start,
-          end,
-        );
-
-        if (!points) {
-          return null;
-        }
-
-        return (
-          <polygon
-            points={points}
-            fill={strokeColor}
-            opacity={bond.style.opacity}
-          />
-        );
-      }
-
-      if (bond.bondType === "hashed-wedge") {
-        const lines = getHashedWedgeLines(
-          start,
-          end,
-        );
-
-        return (
-          <>
-            {lines.map((line, index) => (
-              <line
-                key={`${bond.id}-hash-${index}`}
-                {...line}
-                {...commonLineProps}
-                strokeWidth={2}
-              />
-            ))}
-          </>
-        );
-      }
-
-      if (bond.bondType === "dashed") {
-        return (
-          <line
-            x1={start.x}
-            y1={start.y}
-            x2={end.x}
-            y2={end.y}
-            {...commonLineProps}
-            strokeDasharray="8 6"
-          />
-        );
-      }
-
-      if (bond.bondType === "wavy") {
-        const points = getWavyPoints(
-          start,
-          end,
-        );
-
-        if (!points) {
-          return null;
-        }
-
-        return (
-          <polyline
-            points={points}
-            fill="none"
-            {...commonLineProps}
-          />
-        );
-      }
-
-      const lines = getBondLines(
-        start,
-        end,
-        getSimpleBondOrder(bond.order),
-      );
-
-      return (
-        <>
-          {lines.map((line, index) => (
-            <line
-              key={`${bond.id}-line-${index}`}
-              {...line}
-              {...commonLineProps}
-            />
-          ))}
-        </>
-      );
-    };
-
-    return (
-      <g
-        key={bond.id}
-        className={`${styles.bond} ${
-          isSelected
-            ? styles.bondSelected
-            : ""
-        }`}
-        data-bond-id={bond.id}
-        onClick={(event) =>
-          handleBondClick(event, bond.id)
-        }
-        style={{ cursor: "pointer" }}
-      >
-        <line
-          x1={start.x}
-          y1={start.y}
-          x2={end.x}
-          y2={end.y}
-          stroke="transparent"
-          strokeWidth={18}
-        />
-
-        {renderBondShape()}
-      </g>
-    );
+  const renderedBonds = renderBonds({
+    bonds,
+    atoms,
+    primarySelectedId:
+      document.selection.primarySelectedId,
+    bondSelection,
+    onBondClick: handleBondClick,
+    styles,
   });
 
-  const renderedRings = rings.map((ring) => {
-    const points = ring.atomIds
-      .map((atomId) =>
-        atoms.find(
-          (atom) => atom.id === atomId,
-        ),
-      )
-      .filter(
-        (atom): atom is Atom =>
-          Boolean(atom),
-      )
-      .map((atom) => atom.position);
-
-    const isSelected =
-      document.selection.primarySelectedId ===
-      ring.id;
-
-    if (points.length < 3) {
-      return null;
-    }
-
-    const polygonPoints = points
-      .map((point) => `${point.x},${point.y}`)
-      .join(" ");
-
-    const ringStroke = isSelected
-      ? "var(--md-selection-color)"
-      : ring.style.strokeColor;
-
-    return (
-      <g
-        key={ring.id}
-        onClick={(event) =>
-          handleRingClick(event, ring.id)
-        }
-        style={{ cursor: "pointer" }}
-      >
-        <polygon
-          points={polygonPoints}
-          fill="transparent"
-          stroke={ringStroke}
-          strokeWidth={ring.style.strokeWidth}
-          opacity={ring.style.opacity}
-        />
-
-        {ring.aromatic && (
-          <circle
-            cx={ring.center.x}
-            cy={ring.center.y}
-            r={ring.radius * 0.45}
-            fill="none"
-            stroke={ringStroke}
-            strokeWidth={2}
-            opacity={0.9}
-            pointerEvents="none"
-          />
-        )}
-
-        <polygon
-          points={polygonPoints}
-          fill="transparent"
-          stroke="transparent"
-          strokeWidth={20}
-          opacity={0}
-        />
-      </g>
-    );
+  const renderedRings = renderRings({
+    rings,
+    atoms,
+    primarySelectedId: document.selection.primarySelectedId,
+    onRingClick: handleRingClick,
   });
 
-  const renderedAtoms = atoms.map((atom) => {
-  const atomData =
-    atom as unknown as Record<string, unknown>;
-
-  const position =
-    (
-      atomData.position as
-        | { x?: number; y?: number }
-        | undefined
-    ) ??
-    (
-      atomData.coordinates as
-        | { x?: number; y?: number }
-        | undefined
-    ) ??
-    (
-      atomData.point as
-        | { x?: number; y?: number }
-        | undefined
-    );
-
-  const x =
-    position?.x ??
-    (atomData.cx as number | undefined) ??
-    0;
-
-  const y =
-    position?.y ??
-    (atomData.cy as number | undefined) ??
-    0;
-
-  const symbol =
-    (atomData.element as string | undefined) ??
-    (atomData.symbol as string | undefined) ??
-    (atomData.label as string | undefined) ??
-    "C";
-
-  const atomPalette = getAtomPalette(
-    symbol,
-    "#64748B",
-    "#FFFFFF"
-  );
-
-  const isSelected =
-    selectedAtom?.id === atom.id;
-
-  return (
-    <g
-      key={atom.id}
-      transform={`translate(${x}, ${y})`}
-      style={{ cursor: "pointer" }}
-      onMouseDown={(event) =>
-        handleAtomMouseDown(event, atom.id)
-      }
-    >
-      {/* حلقهٔ انتخاب */}
-      {isSelected && (
-        <circle
-          r={18}
-          fill="transparent"
-          stroke="var(--md-selection-stroke, #3b82f6)"
-          strokeWidth={2}
-          strokeDasharray="4 3"
-          pointerEvents="none"
-        />
-      )}
-
-      {/* دایرهٔ رنگی اتم */}
-      <circle
-        r={13}
-        fill={atomPalette.fill}
-        stroke={atomPalette.fill}
-        strokeWidth={1.5}
-      />
-
-      {/* نماد عنصر */}
-      <text
-        x={0}
-        y={1}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill={atomPalette.text}
-        fontSize={12}
-        fontWeight={700}
-        pointerEvents="none"
-      >
-        {symbol}
-      </text>
-    </g>
-  );
-});
-
-
-  const renderedArrows = arrows.map((arrow) => {
-    const isSelected =
-      document.selection.primarySelectedId ===
-      arrow.id;
-
-    const preset = getArrowPreset(
-      arrow.arrowType,
-    );
-
-    const strokeColor = isSelected
-      ? "var(--md-arrow-selected-color)"
-      : "var(--md-arrow-color)";
-
-    const strokeWidth = arrow.style.strokeWidth;
-    const arrowHead =
-      arrow.arrowHead ?? preset.head;
-
-    const start = arrow.start;
-    const end = arrow.end;
-
-    const deltaX = end.x - start.x;
-    const deltaY = end.y - start.y;
-    const length = Math.hypot(
-      deltaX,
-      deltaY,
-    );
-
-    const unitX =
-      length > 0 ? deltaX / length : 1;
-    const unitY =
-      length > 0 ? deltaY / length : 0;
-
-    const normalX = -unitY;
-    const normalY = unitX;
-
-    const makePoint = (
-      x: number,
-      y: number,
-      offset = 0,
-    ): Point => ({
-      x: x + normalX * offset,
-      y: y + normalY * offset,
-    });
-
-    const getHeadGeometryForLine = (
-      from: Point,
-      to: Point,
-    ) => {
-      const headLength = Math.max(
-        10,
-        strokeWidth * 4,
-      );
-
-      const headWidth = Math.max(
-        7,
-        strokeWidth * 2.6,
-      );
-
-      const lineDx = to.x - from.x;
-      const lineDy = to.y - from.y;
-      const lineLength =
-        Math.hypot(lineDx, lineDy) || 1;
-
-      const lineUnitX =
-        lineDx / lineLength;
-      const lineUnitY =
-        lineDy / lineLength;
-
-      const lineNormalX = -lineUnitY;
-      const lineNormalY = lineUnitX;
-
-      const baseX =
-        to.x - lineUnitX * headLength;
-      const baseY =
-        to.y - lineUnitY * headLength;
-
-      return {
-        tip: to,
-        left: {
-          x: baseX + lineNormalX * headWidth,
-          y: baseY + lineNormalY * headWidth,
-        },
-        right: {
-          x: baseX - lineNormalX * headWidth,
-          y: baseY - lineNormalY * headWidth,
-        },
-      };
-    };
-
-    const renderArrowHead = (
-      from: Point,
-      to: Point,
-      headType: ArrowHeadType,
-      key: string,
-    ): ReactNode => {
-      if (headType === "none") {
-        return null;
-      }
-
-      const geometry =
-        getHeadGeometryForLine(from, to);
-
-      const isOpenHead =
-        headType === "fishhook" ||
-        headType === "half";
-
-      const points = [
-        `${geometry.left.x},${geometry.left.y}`,
-        `${geometry.tip.x},${geometry.tip.y}`,
-        `${geometry.right.x},${geometry.right.y}`,
-      ].join(" ");
-
-      if (isOpenHead) {
-        return (
-          <polyline
-            key={key}
-            points={points}
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            pointerEvents="none"
-          />
-        );
-      }
-
-      return (
-        <polygon
-          key={key}
-          points={points}
-          fill={strokeColor}
-          stroke={strokeColor}
-          strokeWidth={1}
-          strokeLinejoin="round"
-          pointerEvents="none"
-        />
-      );
-    };
-
-    const renderLine = (
-      from: Point,
-      to: Point,
-      key: string,
-      dasharray?: string,
-    ) => (
-      <path
-        key={key}
-        d={`M ${from.x} ${from.y} L ${to.x} ${to.y}`}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={strokeWidth}
-        strokeLinecap={arrow.style.lineCap}
-        strokeLinejoin={arrow.style.lineJoin}
-        strokeDasharray={dasharray}
-        opacity={arrow.style.opacity}
-        pointerEvents="none"
-      />
-    );
-
-    const renderHitArea = (path: string) => (
-      <path
-        d={path}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={24}
-        pointerEvents="stroke"
-      />
-    );
-
-    const renderSingleStraightArrow = (
-      dasharray?: string,
-    ) => {
-      const path = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-
-      return (
-        <>
-          {renderHitArea(path)}
-          {renderLine(
-            start,
-            end,
-            "line",
-            dasharray,
-          )}
-          {renderArrowHead(
-            start,
-            end,
-            arrowHead,
-            "head",
-          )}
-        </>
-      );
-    };
-
-    const renderCurvedArrow = () => {
-      const path =
-        getMechanisticArrowPath(arrow);
-
-      const geometry =
-        getArrowHeadGeometry(arrow);
-
-      const isOpenHead =
-        arrowHead === "fishhook" ||
-        arrowHead === "half";
-
-      const headPoints =
-        getArrowHeadPoints(geometry);
-
-      return (
-        <>
-          {renderHitArea(path)}
-
-          <path
-            d={path}
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap={arrow.style.lineCap}
-            strokeLinejoin={arrow.style.lineJoin}
-            strokeDasharray={
-              preset.strokeDasharray ??
-              arrow.style.dashPattern?.join(" ")
-            }
-            opacity={arrow.style.opacity}
-            pointerEvents="none"
-          />
-
-          {arrowHead === "none" ? null : isOpenHead ? (
-            <polyline
-              points={[
-                `${geometry.left.x},${geometry.left.y}`,
-                `${geometry.tip.x},${geometry.tip.y}`,
-                `${geometry.right.x},${geometry.right.y}`,
-              ].join(" ")}
-              fill="none"
-              stroke={strokeColor}
-              strokeWidth={strokeWidth}
-              strokeLinecap={arrow.style.lineCap}
-              strokeLinejoin={arrow.style.lineJoin}
-              pointerEvents="none"
-            />
-          ) : (
-            <polygon
-              points={headPoints}
-              fill={strokeColor}
-              stroke={strokeColor}
-              strokeWidth={1}
-              strokeLinejoin="round"
-              pointerEvents="none"
-            />
-          )}
-        </>
-      );
-    };
-
-    const renderResonanceArrow = () => {
-      const offset = 7;
-
-      const topStart = makePoint(
-        start.x,
-        start.y,
-        -offset,
-      );
-
-      const topEnd = makePoint(
-        end.x,
-        end.y,
-        -offset,
-      );
-
-      const bottomStart = makePoint(
-        start.x,
-        start.y,
-        offset,
-      );
-
-      const bottomEnd = makePoint(
-        end.x,
-        end.y,
-        offset,
-      );
-
-      const hitPath =
-        `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-
-      return (
-        <>
-          {renderHitArea(hitPath)}
-
-          {renderLine(
-            topStart,
-            topEnd,
-            "resonance-top",
-          )}
-
-          {renderArrowHead(
-            topStart,
-            topEnd,
-            "full",
-            "resonance-top-head",
-          )}
-
-          {renderLine(
-            bottomEnd,
-            bottomStart,
-            "resonance-bottom",
-          )}
-
-          {renderArrowHead(
-            bottomEnd,
-            bottomStart,
-            "full",
-            "resonance-bottom-head",
-          )}
-        </>
-      );
-    };
-
-    const renderEquilibriumArrow = () => {
-      const offset = 7;
-      const shortening = Math.min(
-        18,
-        length * 0.2,
-      );
-
-      const topStart = makePoint(
-        start.x,
-        start.y,
-        -offset,
-      );
-
-      const topEnd = makePoint(
-        end.x - unitX * shortening,
-        end.y - unitY * shortening,
-        -offset,
-      );
-
-      const bottomStart = makePoint(
-        start.x + unitX * shortening,
-        start.y + unitY * shortening,
-        offset,
-      );
-
-      const bottomEnd = makePoint(
-        end.x,
-        end.y,
-        offset,
-      );
-
-      const hitPath =
-        `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-
-      return (
-        <>
-          {renderHitArea(hitPath)}
-
-          {renderLine(
-            topStart,
-            topEnd,
-            "equilibrium-top",
-          )}
-
-          {renderArrowHead(
-            topStart,
-            topEnd,
-            "full",
-            "equilibrium-top-head",
-          )}
-
-          {renderLine(
-            bottomEnd,
-            bottomStart,
-            "equilibrium-bottom",
-          )}
-
-          {renderArrowHead(
-            bottomEnd,
-            bottomStart,
-            "full",
-            "equilibrium-bottom-head",
-          )}
-        </>
-      );
-    };
-
-    const renderReversibleArrow = () => {
-      const offset = 7;
-
-      const topStart = makePoint(
-        start.x,
-        start.y,
-        -offset,
-      );
-
-      const topEnd = makePoint(
-        end.x,
-        end.y,
-        -offset,
-      );
-
-      const bottomStart = makePoint(
-        start.x,
-        start.y,
-        offset,
-      );
-
-      const bottomEnd = makePoint(
-        end.x,
-        end.y,
-        offset,
-      );
-
-      const hitPath =
-        `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-
-      return (
-        <>
-          {renderHitArea(hitPath)}
-
-          {renderLine(
-            topStart,
-            topEnd,
-            "reversible-top",
-          )}
-
-          {renderArrowHead(
-            topStart,
-            topEnd,
-            "full",
-            "reversible-top-head",
-          )}
-
-          {renderLine(
-            bottomEnd,
-            bottomStart,
-            "reversible-bottom",
-          )}
-
-          {renderArrowHead(
-            bottomEnd,
-            bottomStart,
-            "full",
-            "reversible-bottom-head",
-          )}
-        </>
-      );
-    };
-
-    const renderRetrosynthesisArrow = () => {
-      const offset = 3.5;
-
-      const upperStart = makePoint(
-        start.x,
-        start.y,
-        -offset,
-      );
-
-      const upperEnd = makePoint(
-        end.x,
-        end.y,
-        -offset,
-      );
-
-      const lowerStart = makePoint(
-        start.x,
-        start.y,
-        offset,
-      );
-
-      const lowerEnd = makePoint(
-        end.x,
-        end.y,
-        offset,
-      );
-
-      const hitPath =
-        `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-
-      return (
-        <>
-          {renderHitArea(hitPath)}
-
-          {renderLine(
-            upperStart,
-            upperEnd,
-            "retro-upper",
-            "7 4",
-          )}
-
-          {renderLine(
-            lowerStart,
-            lowerEnd,
-            "retro-lower",
-            "7 4",
-          )}
-
-          {renderArrowHead(
-            upperStart,
-            upperEnd,
-            "full",
-            "retro-head",
-          )}
-        </>
-      );
-    };
-
-    const renderAnnotationArrow = () => {
-      const path =
-        `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-
-      return (
-        <>
-          {renderHitArea(path)}
-
-          <path
-            d={path}
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth={Math.max(
-              1,
-              strokeWidth * 0.75,
-            )}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray={
-              preset.strokeDasharray ?? "5 5"
-            }
-            opacity={arrow.style.opacity}
-            pointerEvents="none"
-          />
-
-          {renderArrowHead(
-            start,
-            end,
-            "half",
-            "annotation-head",
-          )}
-        </>
-      );
-    };
-
-    let arrowContent: ReactNode;
-
-    switch (preset.pathStyle) {
-      case "straight":
-        arrowContent =
-          renderSingleStraightArrow();
-        break;
-
-      case "dashed":
-        arrowContent =
-          renderSingleStraightArrow(
-            preset.strokeDasharray ?? "8 6",
-          );
-        break;
-
-      case "curved":
-        arrowContent = renderCurvedArrow();
-        break;
-
-      case "resonance":
-        arrowContent = renderResonanceArrow();
-        break;
-
-      case "equilibrium":
-        arrowContent =
-          renderEquilibriumArrow();
-        break;
-
-      case "reversible":
-        arrowContent =
-          renderReversibleArrow();
-        break;
-
-      case "retrosynthesis":
-        arrowContent =
-          renderRetrosynthesisArrow();
-        break;
-
-      case "annotation":
-        arrowContent =
-          renderAnnotationArrow();
-        break;
-
-      default:
-        arrowContent =
-          renderSingleStraightArrow();
-    }
-
-    const presetLabel = preset.showLabel
-      ? preset.id === "proton-transfer"
-        ? "H⁺"
-        : preset.id === "charge-transfer"
-          ? "±"
-          : preset.id ===
-              "mechanistic-annotation"
-            ? "مکانیسم"
-            : undefined
-      : undefined;
-
-    const displayedLabel =
-      arrow.label || presetLabel;
-
-    return (
-      <g
-        key={arrow.id}
-        data-arrow-id={arrow.id}
-        onMouseDown={(event) =>
-          handleArrowMouseDown(
-            event,
-            arrow.id,
-          )
-        }
-      >
-        {arrowContent}
-
-        {displayedLabel && (
-          <text
-            x={(start.x + end.x) / 2}
-            y={(start.y + end.y) / 2 - 14}
-            textAnchor="middle"
-            fill={strokeColor}
-            fontSize={arrow.style.fontSize}
-            fontFamily={arrow.style.fontFamily}
-            fontWeight={700}
-            pointerEvents="none"
-          >
-            {displayedLabel}
-          </text>
-        )}
-      </g>
-    );
+  const renderedAtoms = renderAtoms({
+    atoms,
+    selectedAtomId: document.selection.primarySelectedId,
+    onAtomMouseDown: handleAtomMouseDown,
+    atomRadius: ATOM_RADIUS,
+  });
+
+  const renderedArrows = renderArrows({
+    arrows,
+    primarySelectedId: document.selection.primarySelectedId,
+    onArrowMouseDown: handleArrowMouseDown,
   });
 
   const arrowPreview = useMemo(() => {
@@ -2270,12 +1144,9 @@ export default function MoleculeDrawer() {
 
     return {
       path,
-      geometry,
       headPoints:
         getArrowHeadPoints(geometry),
       arrowHead: preset.head,
-      strokeDasharray:
-        preset.strokeDasharray,
       pathStyle: preset.pathStyle,
     };
   }, [
@@ -2328,7 +1199,8 @@ export default function MoleculeDrawer() {
 
     setBondSelection([]);
   };
-    const handleElementChange = (element: ElementSymbol) => {
+
+  const handleElementChange = (element: ElementSymbol) => {
     updateDocument((currentDocument) => ({
       ...currentDocument,
       tool: {
@@ -2365,8 +1237,19 @@ export default function MoleculeDrawer() {
     setBondSelection([]);
   };
 
+  const handleFunctionalGroupChange = (groupId: string) => {
+    updateDocument((currentDocument) => ({
+      ...currentDocument,
+      tool: {
+        ...currentDocument.tool,
+        selectedFunctionalGroup: groupId,
+        mode: "add-functional-group",
+      },
+    }));
+    setBondSelection([]);
+  };
 
-    if (!isReady) {
+  if (!isReady) {
     return (
       <main
         className={`${styles.application} ${
@@ -2381,7 +1264,6 @@ export default function MoleculeDrawer() {
     );
   }
 
-  const selectedObjectId = document.selection.primarySelectedId;
   const selectedIds = document.selection.selectedIds;
 
   const applicationClassName = [
@@ -2477,7 +1359,6 @@ export default function MoleculeDrawer() {
           </div>
         </header>
 
-        {/* نوار ابزار افقی بالای صفحه */}
         <MoleculeToolbar
           activeMode={document.tool.mode}
           showGrid={document.viewport.showGrid}
@@ -2495,9 +1376,8 @@ export default function MoleculeDrawer() {
         />
 
         <div className={styles.editorLayout}>
-          {/* ستون کناری برای ابزارها و پنل عناصر */}
           <aside className={styles.sidebar}>
-                       <MoleculeSidebar
+            <MoleculeSidebar
               document={document}
               onModeChange={setInteractionMode}
               onElementChange={handleElementChange}
@@ -2511,10 +1391,8 @@ export default function MoleculeDrawer() {
               onToggleSnap={toggleSnapToGrid}
               onClearSelection={clearSelection}
             />
-
           </aside>
 
-          {/* بوم اصلی SVG */}
           <section
             className={canvasClassName}
             aria-label="بوم رسم ساختار مولکولی"
@@ -2533,56 +1411,7 @@ export default function MoleculeDrawer() {
               onMouseLeave={handleCanvasMouseUp}
               onClick={handleCanvasClick}
             >
-              <defs>
-                <pattern
-                  id="md-small-grid"
-                  width="20"
-                  height="20"
-                  patternUnits="userSpaceOnUse"
-                >
-                  <path
-                    d="M 20 0 L 0 0 0 20"
-                    fill="none"
-                    stroke="var(--md-grid-color)"
-                    strokeWidth="0.7"
-                  />
-                </pattern>
-
-                <pattern
-                  id="md-large-grid"
-                  width="100"
-                  height="100"
-                  patternUnits="userSpaceOnUse"
-                >
-                  <rect
-                    width="100"
-                    height="100"
-                    fill="url(#md-small-grid)"
-                  />
-
-                  <path
-                    d="M 100 0 L 0 0 0 100"
-                    fill="none"
-                    stroke="var(--md-grid-strong-color)"
-                    strokeWidth="1"
-                  />
-                </pattern>
-
-                <marker
-                  id="md-preview-arrowhead"
-                  markerWidth="10"
-                  markerHeight="10"
-                  refX="8"
-                  refY="5"
-                  orient="auto"
-                  markerUnits="strokeWidth"
-                >
-                  <path
-                    d="M 0 0 L 10 5 L 0 10 Z"
-                    fill="var(--md-arrow-color)"
-                  />
-                </marker>
-              </defs>
+              <CanvasDefs />
 
               {document.viewport.showGrid && (
                 <rect
@@ -2600,43 +1429,10 @@ export default function MoleculeDrawer() {
               <g className={styles.arrowsLayer}>{renderedArrows}</g>
               <g className={styles.atomsLayer}>{renderedAtoms}</g>
 
-              {arrowPreview && (
-                <g className={styles.arrowPreview} pointerEvents="none">
-                  {arrowPreview.pathStyle === "curved" ? (
-                    <path
-                      d={arrowPreview.path}
-                      fill="none"
-                      stroke="var(--md-arrow-color)"
-                      strokeWidth={2}
-                      strokeDasharray="6 5"
-                      strokeLinecap="round"
-                      markerEnd="url(#md-preview-arrowhead)"
-                      opacity={0.8}
-                    />
-                  ) : (
-                    <>
-                      <path
-                        d={arrowPreview.path}
-                        fill="none"
-                        stroke="var(--md-arrow-color)"
-                        strokeWidth={2}
-                        strokeDasharray="6 5"
-                        strokeLinecap="round"
-                        markerEnd="url(#md-preview-arrowhead)"
-                        opacity={0.8}
-                      />
-
-                      {arrowPreview.arrowHead !== "none" && (
-                        <polygon
-                          points={arrowPreview.headPoints}
-                          fill="var(--md-arrow-color)"
-                          opacity={0.8}
-                        />
-                      )}
-                    </>
-                  )}
-                </g>
-              )}
+              {renderArrowPreview({
+                preview: arrowPreview,
+                className: styles.arrowPreview,
+              })}
 
               {selectedIds.length > 0 && (
                 <text
@@ -2659,7 +1455,11 @@ export default function MoleculeDrawer() {
                   ? "برای افزودن اتم روی بوم کلیک کنید."
                   : document.tool.mode === "add-bond"
                     ? "دو اتم را به‌ترتیب انتخاب کنید."
-                    : "ابزار موردنظر را از نوار ابزار انتخاب کنید."}
+                    : document.tool.mode === "add-charge"
+                      ? "روی اتم مورد نظر کلیک کنید تا بار الکتریکی اعمال شود."
+                      : document.tool.mode === "add-electron"
+                        ? "روی اتم مورد نظر کلیک کنید تا نمایش جفت‌الکترون/رادیکال اعمال شود."
+                        : "ابزار موردنظر را از نوار ابزار یا سایدبار انتخاب کنید."}
             </div>
           </section>
         </div>
