@@ -1307,3 +1307,9 @@
   font-size: 13px;
   font-weight: 600;
 }
+/* در فایل CSS مربوطه یا کلاس Tailwind */
+.canvas-container {
+  touch-action: none; /* جلوگیری کامل از اسکرول و زوم پیش‌فرض لمسی */
+  user-select: none;
+  -webkit-user-select: none;
+}

@@ -16,27 +16,24 @@ interface ToolbarItem {
   readonly mode: InteractionMode;
   readonly label: string;
   readonly icon: string;
-  readonly shortcut: string;
 }
 
 const TOOLBAR_ITEMS: readonly ToolbarItem[] = [
-  { mode: "select", label: "انتخاب", icon: "⌁", shortcut: "V" },
-  { mode: "add-atom", label: "اتم", icon: "C", shortcut: "A" },
-  { mode: "add-bond", label: "پیوند", icon: "／", shortcut: "B" },
-  { mode: "add-ring", label: "حلقه", icon: "⬡", shortcut: "R" },
+  { mode: "select", label: "انتخاب", icon: "⌁" },
+  { mode: "add-atom", label: "اتم", icon: "C" },
+  { mode: "add-bond", label: "پیوند", icon: "／" },
+  { mode: "add-ring", label: "حلقه", icon: "⬡" },
   {
     mode: "add-functional-group",
     label: "گروه عاملی",
     icon: "OH",
-    shortcut: "G",
   },
-  { mode: "add-arrow", label: "فلش مکانیزمی", icon: "↝", shortcut: "E" },
-  { mode: "add-charge", label: "بار الکتریکی", icon: "±", shortcut: "Q" },
-  { mode: "add-electron", label: "الکترون", icon: "••", shortcut: "L" },
-  { mode: "add-text", label: "متن", icon: "T", shortcut: "T" },
-  { mode: "brush", label: "قلم‌مو", icon: "✎", shortcut: "P" },
-  { mode: "erase", label: "پاک‌کن", icon: "⌫", shortcut: "X" },
-  { mode: "pan", label: "جابه‌جایی", icon: "✋", shortcut: "H" },
+  { mode: "add-arrow", label: "فلش مکانیزمی", icon: "↝" },
+  { mode: "add-charge", label: "بار الکتریکی", icon: "±" },
+  { mode: "add-electron", label: "الکترون", icon: "••" },
+  { mode: "add-text", label: "متن", icon: "T" },
+  { mode: "brush", label: "قلم‌مو", icon: "✎" },
+  { mode: "erase", label: "پاک‌کن", icon: "⌫" },
 ];
 
 const COLOR_OPTIONS: readonly TextColorName[] = [
@@ -265,7 +262,7 @@ export default function MoleculeToolbar({
               }`}
               aria-pressed={isActive}
               aria-label={item.label}
-              title={`${item.label} — میانبر ${item.shortcut}`}
+              title={item.label}
               onClick={() => onModeChange(item.mode)}
             >
               <span className={styles.toolIcon} aria-hidden="true">
@@ -273,7 +270,7 @@ export default function MoleculeToolbar({
               </span>
 
               <span className={styles.toolLabel}>{item.label}</span>
-              <kbd>{item.shortcut}</kbd>
+             
             </button>
           );
         })}

@@ -5,7 +5,10 @@ import {
   useRef,
   useState,
 } from "react";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type {
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+} from "react";
 
 import {
   getChargeAtomPatch,
@@ -111,53 +114,41 @@ interface MoleculeCanvasProps {
   bondSelection: string[];
   activeOperator?: string | null;
   textToolSettings: TextToolSettingsValue;
-
-
-
   onAtomMouseDown: (
-    event: ReactMouseEvent<SVGGElement>,
+    event: ReactPointerEvent<SVGGElement>,
     atomId: string
   ) => void;
-
+  onSelectObjects?: (selectedIds: string[]) => void;
   onBondClick: (
-    event: ReactMouseEvent<SVGGElement>,
+    event: ReactPointerEvent<SVGGElement>,
     bondId: string
   ) => void;
-
   onRingClick: (
-    event: ReactMouseEvent<SVGGElement>,
+    event: ReactPointerEvent<SVGGElement>,
     ringId: string
   ) => void;
-
   onArrowClick?: (
-    event: ReactMouseEvent<SVGGElement>,
+    event: ReactPointerEvent<SVGGElement>,
     arrowId: string
   ) => void;
-
   onTextClick?: (
-    event: ReactMouseEvent<SVGGElement>,
+    event: ReactPointerEvent<SVGGElement>,
     textId: string
   ) => void;
-
   onCanvasClick: (
     event: ReactMouseEvent<SVGSVGElement>,
     point: Point
   ) => void;
-
-  onCanvasMouseMove: (
-    event: ReactMouseEvent<SVGSVGElement>,
+  onCanvasMouseMove?: (
+    event: ReactPointerEvent<SVGSVGElement>,
     point: Point
   ) => void;
-
-  onCanvasMouseUp: () => void;
-
+  onCanvasMouseUp?: () => void;
   onUpdateAtom: (
     atomId: string,
     changes: Partial<Atom>
   ) => void;
-
   onAddArrow: (arrow: Arrow) => void;
-
   onAddTextObject: (
     textObject: TextObject
   ) => void;
@@ -345,14 +336,13 @@ const getArrowPath = (
     `${end.x} ${end.y}`,
   ].join(" ");
 };
-
 export default function MoleculeCanvas({
   document,
   bondSelection,
   activeOperator,
   textToolSettings,
-
   onAtomMouseDown,
+  onSelectObjects,
   onBondClick,
   onRingClick,
   onArrowClick,
@@ -367,19 +357,25 @@ export default function MoleculeCanvas({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const isDraggingArrowRef = useRef(false);
 
-  const [
-    arrowDraftStart,
-    setArrowDraftStart,
-  ] = useState<Point | null>(null);
+  const [arrowDraftStart, setArrowDraftStart] =
+    useState<Point | null>(null);
+  const [arrowDraftCurrent, setArrowDraftCurrent] =
+    useState<Point | null>(null);
 
-  const [
-    arrowDraftCurrent,
-    setArrowDraftCurrent,
-  ] = useState<Point | null>(null);
+  const [selectionBoxStart, setSelectionBoxStart] =
+    useState<Point | null>(null);
+  const [selectionBoxCurrent, setSelectionBoxCurrent] =
+    useState<Point | null>(null);
+
+  const clearArrowDraft = () => {
+    setArrowDraftStart(null);
+    setArrowDraftCurrent(null);
+    isDraggingArrowRef.current = false;
+  };
 
   const getSVGCoordinates = useCallback(
     (
-      event: ReactMouseEvent<SVGSVGElement>
+      event: ReactPointerEvent<SVGSVGElement> | ReactMouseEvent<SVGSVGElement>
     ): Point => {
       const svg = svgRef.current;
 
@@ -408,9 +404,7 @@ export default function MoleculeCanvas({
       let y = point.y;
 
       if (document.viewport.snapToGrid) {
-        const gridSize =
-          document.viewport.gridSize || 20;
-
+        const gridSize = document.viewport.gridSize || 20;
         x = Math.round(x / gridSize) * gridSize;
         y = Math.round(y / gridSize) * gridSize;
       }
@@ -423,52 +417,35 @@ export default function MoleculeCanvas({
     ]
   );
 
-  const clearArrowDraft = () => {
-    setArrowDraftStart(null);
-    setArrowDraftCurrent(null);
+  const handlePointerDown = (
+  event: ReactPointerEvent<SVGSVGElement>
+) => {
+  // فقط زمانی که واقعاً نیاز به درگ باکس سلکت یا فلش داریم کپچر کنیم:
+  if (document.tool.mode === "add-arrow" || document.tool.mode === "select") {
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  const point = getSVGCoordinates(event);
+
+  if (document.tool.mode === "add-arrow") {
     isDraggingArrowRef.current = false;
-  };
-
-  const handleAtomInteract = (
-    atom: Atom,
-    event: ReactMouseEvent<SVGGElement>
-  ) => {
-    event.stopPropagation();
-
-    const mode = document.tool.mode;
-
-    if (mode === "add-charge") {
-      const patch = getChargeAtomPatch(document.tool.selectedCharge);
-      onUpdateAtom(atom.id, patch);
-      return;
-    }
-
-    if (mode === "add-electron") {
-      const patch = getElectronAtomPatch(document.tool.selectedElectronDisplay);
-      onUpdateAtom(atom.id, patch);
-      return;
-    }
-
-    onAtomMouseDown(event, atom.id);
-  };
-
-  const handleMouseDown = (
-    event: ReactMouseEvent<SVGSVGElement>
-  ) => {
-    if (document.tool.mode !== "add-arrow") {
-      return;
-    }
-
-    const point = getSVGCoordinates(event);
-
-    isDraggingArrowRef.current = false;
-
     setArrowDraftStart(point);
     setArrowDraftCurrent(point);
-  };
+    return;
+  }
 
-  const handleMouseMove = (
-    event: ReactMouseEvent<SVGSVGElement>
+  if (document.tool.mode === "select") {
+    setSelectionBoxStart(point);
+    setSelectionBoxCurrent(point);
+    return;
+  }
+
+  onCanvasClick(event, point);
+};
+
+
+  const handlePointerMove = (
+    event: ReactPointerEvent<SVGSVGElement>
   ) => {
     const point = getSVGCoordinates(event);
 
@@ -488,10 +465,25 @@ export default function MoleculeCanvas({
       setArrowDraftCurrent(point);
     }
 
-    onCanvasMouseMove(event, point);
+    if (
+      selectionBoxStart &&
+      document.tool.mode === "select"
+    ) {
+      setSelectionBoxCurrent(point);
+    }
+
+    onCanvasMouseMove?.(event, point);
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (
+    event: ReactPointerEvent<SVGSVGElement>
+  ) => {
+    const target = event.currentTarget;
+
+    if (target.hasPointerCapture(event.pointerId)) {
+      target.releasePointerCapture(event.pointerId);
+    }
+
     if (
       arrowDraftStart &&
       arrowDraftCurrent &&
@@ -540,104 +532,128 @@ export default function MoleculeCanvas({
       clearArrowDraft();
     }
 
-    onCanvasMouseUp();
-  };
+    if (
+      selectionBoxStart &&
+      selectionBoxCurrent &&
+      document.tool.mode === "select"
+    ) {
+      const minX = Math.min(
+        selectionBoxStart.x,
+        selectionBoxCurrent.x
+      );
+      const maxX = Math.max(
+        selectionBoxStart.x,
+        selectionBoxCurrent.x
+      );
+      const minY = Math.min(
+        selectionBoxStart.y,
+        selectionBoxCurrent.y
+      );
+      const maxY = Math.max(
+        selectionBoxStart.y,
+        selectionBoxCurrent.y
+      );
 
-  const handleClick = (
-    event: ReactMouseEvent<SVGSVGElement>
-  ) => {
-    if (isDraggingArrowRef.current) {
-      isDraggingArrowRef.current = false;
-      return;
-    }
+      if (maxX - minX > 5 || maxY - minY > 5) {
+        const selectedAtomIds = document.objects
+          .filter(
+            (object): object is Atom =>
+              object.type === "atom"
+          )
+          .filter(
+            (atom) =>
+              atom.position.x >= minX &&
+              atom.position.x <= maxX &&
+              atom.position.y >= minY &&
+              atom.position.y <= maxY
+          )
+          .map((atom) => atom.id);
 
-    const point = getSVGCoordinates(event);
-
-    if (activeOperator) {
-      let textSymbol = "+";
-
-      if (activeOperator === "heat") {
-        textSymbol = "Δ";
-      } else if (activeOperator === "light") {
-        textSymbol = "hν";
-      } else if (activeOperator === "bracket") {
-        textSymbol = "[ ]‡";
-      } else if (
-        activeOperator === "equilibrium-constant"
-      ) {
-        textSymbol = "K";
+        if (selectedAtomIds.length > 0) {
+          onSelectObjects?.(selectedAtomIds);
+        }
       }
 
-      const textObject: TextObject = {
-        id: createId("text"),
-        type: "text",
-        position: point,
-        segments: [
-          {
-            id: createId("segment"),
-            text: textSymbol,
-            mode: "normal",
-          },
-        ],
-        fontWeight: "bold",
-        fontStyle: "normal",
-        alignment: "middle",
-        editable: true,
-        rotation: 0,
-        selected: true,
-        locked: false,
-        visible: true,
-        zIndex: 3,
-        style: createDefaultStyle({
-          color: TEXT_COLORS[textToolSettings.color] || "#1F2937",
-          fontSize: TEXT_SIZES[textToolSettings.size] || 24,
-        }),
-      };
+      setSelectionBoxStart(null);
+      setSelectionBoxCurrent(null);
+    }
 
-      onAddTextObject(textObject);
+    onCanvasMouseUp?.();
+  };
+const handleClick = (
+  event: ReactMouseEvent<SVGSVGElement>
+) => {
+  if (isDraggingArrowRef.current) {
+    isDraggingArrowRef.current = false;
+    return;
+  }
+
+  // اگر ابزار عملگر (مانند دلتا، مثبت، ...) فعال است، درج متن انجام شود:
+  if (activeOperator) {
+    const point = getSVGCoordinates(event);
+    let textSymbol = "+";
+
+    if (activeOperator === "heat") textSymbol = "Δ";
+    else if (activeOperator === "light") textSymbol = "hν";
+    else if (activeOperator === "bracket") textSymbol = "[ ]‡";
+    else if (activeOperator === "equilibrium-constant") textSymbol = "K";
+
+    const textObject: TextObject = {
+      id: createId("text"),
+      type: "text",
+      position: point,
+      segments: [{ id: createId("segment"), text: textSymbol, mode: "normal" }],
+      fontWeight: "bold",
+      fontStyle: "normal",
+      alignment: "middle",
+      editable: true,
+      rotation: 0,
+      selected: true,
+      locked: false,
+      visible: true,
+      zIndex: 3,
+      style: createDefaultStyle({
+        color: TEXT_COLORS[textToolSettings.color] || "#1F2937",
+        fontSize: TEXT_SIZES[textToolSettings.size] || 24,
+      }),
+    };
+
+    onAddTextObject(textObject);
+
       return;
     }
 
-    onCanvasClick(event, point);
   };
 
   const atoms = document.objects.filter(
-    (object): object is Atom =>
-      object.type === "atom"
+    (object): object is Atom => object.type === "atom"
   );
 
   const bonds = document.objects.filter(
-    (object): object is Bond =>
-      object.type === "bond"
+    (object): object is Bond => object.type === "bond"
   );
 
   const rings = document.objects.filter(
-    (object): object is Ring =>
-      object.type === "ring"
+    (object): object is Ring => object.type === "ring"
   );
 
   const arrows = document.objects.filter(
-    (object): object is Arrow =>
-      object.type === "arrow"
+    (object): object is Arrow => object.type === "arrow"
   );
 
   const texts = document.objects.filter(
-    (object): object is TextObject =>
-      object.type === "text"
+    (object): object is TextObject => object.type === "text"
   );
 
   const renderedBonds = bonds.map((bond) => {
     const atomA = atoms.find(
       (atom) => atom.id === bond.startAtomId
     );
-
     const atomB = atoms.find(
       (atom) => atom.id === bond.endAtomId
     );
 
-    if (!atomA || !atomB) {
-      return null;
-    }
+    if (!atomA || !atomB) return null;
 
     const start = atomA.position;
     const end = atomB.position;
@@ -660,11 +676,7 @@ export default function MoleculeCanvas({
 
     const renderShape = () => {
       if (bond.bondType === "solid-wedge") {
-        const points = getWedgePoints(
-          start,
-          end
-        );
-
+        const points = getWedgePoints(start, end);
         return points ? (
           <polygon
             points={points}
@@ -677,17 +689,16 @@ export default function MoleculeCanvas({
       if (bond.bondType === "hashed-wedge") {
         return (
           <>
-            {getHashedWedgeLines(
-              start,
-              end
-            ).map((line, index) => (
-              <line
-                key={`${bond.id}-hash-${index}`}
-                {...line}
-                {...commonProps}
-                strokeWidth={2}
-              />
-            ))}
+            {getHashedWedgeLines(start, end).map(
+              (line, index) => (
+                <line
+                  key={`${bond.id}-hash-${index}`}
+                  {...line}
+                  {...commonProps}
+                  strokeWidth={2}
+                />
+              )
+            )}
           </>
         );
       }
@@ -706,11 +717,7 @@ export default function MoleculeCanvas({
       }
 
       if (bond.bondType === "wavy") {
-        const points = getWavyPoints(
-          start,
-          end
-        );
-
+        const points = getWavyPoints(start, end);
         return points ? (
           <polyline
             points={points}
@@ -743,13 +750,10 @@ export default function MoleculeCanvas({
         className={`${styles.bond} ${
           isSelected ? styles.bondSelected : ""
         }`}
-        onMouseDown={(event) => {
-          event.stopPropagation();
-        }}
-        onClick={(event) => {
-          event.stopPropagation();
-          onBondClick(event, bond.id);
-        }}
+        onPointerDown={(event) => {
+  onBondClick(event, bond.id);
+}}
+
         style={{ cursor: "pointer" }}
       >
         <line
@@ -760,7 +764,6 @@ export default function MoleculeCanvas({
           stroke="transparent"
           strokeWidth={OBJECT_HIT_STROKE_WIDTH}
         />
-
         {renderShape()}
       </g>
     );
@@ -770,23 +773,15 @@ export default function MoleculeCanvas({
     const points = ring.atomIds
       .map(
         (atomId) =>
-          atoms.find(
-            (atom) => atom.id === atomId
-          )?.position
+          atoms.find((atom) => atom.id === atomId)
+            ?.position
       )
-      .filter(
-        (position): position is Point =>
-          Boolean(position)
-      );
+      .filter((position): position is Point => Boolean(position));
 
-    if (points.length < 3) {
-      return null;
-    }
+    if (points.length < 3) return null;
 
     const polygonPoints = points
-      .map(
-        (point) => `${point.x},${point.y}`
-      )
+      .map((point) => `${point.x},${point.y}`)
       .join(" ");
 
     const isSelected =
@@ -799,13 +794,11 @@ export default function MoleculeCanvas({
     return (
       <g
         key={ring.id}
-        onMouseDown={(event) => {
-          event.stopPropagation();
-        }}
-        onClick={(event) => {
-          event.stopPropagation();
-          onRingClick(event, ring.id);
-        }}
+        onPointerDown={(event) => {
+  event.stopPropagation();
+  onRingClick(event, ring.id);
+}}
+
         style={{ cursor: "pointer" }}
       >
         <polygon
@@ -815,7 +808,6 @@ export default function MoleculeCanvas({
           strokeWidth={ring.style.strokeWidth}
           opacity={ring.style.opacity}
         />
-
         {ring.aromatic && (
           <circle
             cx={ring.center.x}
@@ -832,7 +824,7 @@ export default function MoleculeCanvas({
     );
   });
 
-  const renderedAtoms = atoms.map((atom) => {
+    const renderedAtoms = atoms.map((atom) => {
     const elementData = getElementData(atom.element);
 
     const atomPalette = getAtomPalette(
@@ -844,8 +836,8 @@ export default function MoleculeCanvas({
     const isSelected =
       document.selection.primarySelectedId === atom.id;
 
-    const isBondStart =
-      bondSelection[0] === atom.id;
+    // اتم مبدأ پیوند
+    const isBondStart = bondSelection.includes(atom.id);
 
     const chargeSymbol = getChargeDisplayText(atom);
 
@@ -853,27 +845,30 @@ export default function MoleculeCanvas({
       <g
         key={atom.id}
         transform={`translate(${atom.position.x} ${atom.position.y})`}
-        onMouseDown={(event) => {
-          handleAtomInteract(atom, event);
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          onAtomMouseDown(event, atom.id);
         }}
-        className={
-          isBondStart
-            ? styles.atomSelected
-            : undefined
-        }
-        style={{ cursor: "pointer" }}
+        style={{ cursor: "crosshair" }}
       >
-        <circle
-          r={ATOM_RADIUS + 8}
-          fill="transparent"
-          pointerEvents="all"
-        />
+        {/* هاله راهنما برای اتم مبدا پیوند */}
+        {isBondStart && (
+          <circle
+            r={ATOM_RADIUS + 7}
+            fill="none"
+            stroke="#10B981"
+            strokeWidth={3}
+            strokeDasharray="3 3"
+            pointerEvents="none"
+          />
+        )}
 
-        {isSelected && (
+        {/* هاله انتخاب معمولی */}
+        {isSelected && !isBondStart && (
           <circle
             r={ATOM_RADIUS + 4}
             fill="none"
-            stroke="var(--md-selection-color)"
+            stroke="var(--md-selection-color, #2563EB)"
             strokeWidth={3}
             opacity={0.9}
             pointerEvents="none"
@@ -883,9 +878,9 @@ export default function MoleculeCanvas({
         <circle
           r={ATOM_RADIUS}
           fill={atomPalette.fill}
-          stroke={atomPalette.fill}
+          stroke={isBondStart ? "#10B981" : atomPalette.fill}
           strokeWidth={2}
-          pointerEvents="none"
+          pointerEvents="all"
         />
 
         <text
@@ -893,7 +888,7 @@ export default function MoleculeCanvas({
           y="7"
           textAnchor="middle"
           fill={atomPalette.text}
-          fontSize={atom.labelSize}
+          fontSize={atom.labelSize || 16}
           fontWeight="700"
           pointerEvents="none"
         >
@@ -901,13 +896,8 @@ export default function MoleculeCanvas({
         </text>
 
         {chargeSymbol && (
-          <g transform="translate(14, -12)">
-            <circle
-              r="8"
-              fill="#B91C1C"
-              pointerEvents="none"
-            />
-
+          <g transform="translate(14, -12)" pointerEvents="none">
+            <circle r="8" fill="#B91C1C" />
             <text
               x="0"
               y="3.5"
@@ -915,44 +905,10 @@ export default function MoleculeCanvas({
               fill="#FFFFFF"
               fontSize="10"
               fontWeight="bold"
-              pointerEvents="none"
             >
               {chargeSymbol}
             </text>
           </g>
-        )}
-
-        {(atom.electronDisplay === "lone-pair" ||
-          atom.showLonePairs) && (
-          <g
-            transform="translate(0, -22)"
-            pointerEvents="none"
-          >
-            <circle
-              cx="-3"
-              cy="0"
-              r="2"
-              fill="#2563EB"
-            />
-
-            <circle
-              cx="3"
-              cy="0"
-              r="2"
-              fill="#2563EB"
-            />
-          </g>
-        )}
-
-        {(atom.electronDisplay === "single-electron" ||
-          atom.radical === "single") && (
-          <circle
-            cx="0"
-            cy="-22"
-            r="2.5"
-            fill="#DC2626"
-            pointerEvents="none"
-          />
         )}
       </g>
     );
@@ -967,20 +923,17 @@ export default function MoleculeCanvas({
       : arrow.style.strokeColor;
 
     const pathData = getArrowPath(arrow);
-
     const isDashed =
       arrow.arrowType === "dashed-reaction";
 
     return (
       <g
         key={arrow.id}
-        onMouseDown={(event) => {
-          event.stopPropagation();
-        }}
-        onClick={(event) => {
-          event.stopPropagation();
-          onArrowClick?.(event, arrow.id);
-        }}
+     onPointerDown={(event) => {
+  event.stopPropagation();
+  onArrowClick?.(event, arrow.id);
+}}
+
         style={{ cursor: "pointer" }}
       >
         <path
@@ -990,7 +943,6 @@ export default function MoleculeCanvas({
           strokeWidth={OBJECT_HIT_STROKE_WIDTH}
           pointerEvents="stroke"
         />
-
         <path
           d={pathData}
           fill="none"
@@ -998,16 +950,14 @@ export default function MoleculeCanvas({
           strokeWidth={arrow.style.strokeWidth}
           strokeLinecap={arrow.style.lineCap}
           strokeLinejoin={arrow.style.lineJoin}
-          strokeDasharray={
-            isDashed ? "8 6" : undefined
-          }
+          strokeDasharray={isDashed ? "8 6" : undefined}
           opacity={arrow.style.opacity}
           markerEnd={
             arrow.arrowHead === "none"
               ? undefined
               : isSelected
-              ? "url(#arrowhead-selected)"
-              : "url(#arrowhead)"
+                ? "url(#arrowhead-selected)"
+                : "url(#arrowhead)"
           }
           pointerEvents="none"
         />
@@ -1034,13 +984,10 @@ export default function MoleculeCanvas({
           )
           rotate(${textObject.rotation})
         `}
-        onMouseDown={(event) => {
-          event.stopPropagation();
-        }}
-        onClick={(event) => {
-          event.stopPropagation();
-          onTextClick?.(event, textObject.id);
-        }}
+       onPointerDown={(event) => {
+  event.stopPropagation();
+  onTextClick?.(event, textObject.id);
+}}
         style={{ cursor: "pointer" }}
       >
         {isSelected && (
@@ -1073,8 +1020,7 @@ export default function MoleculeCanvas({
     );
   });
 
-  const gridSize =
-    document.viewport.gridSize || 20;
+  const gridSize = document.viewport.gridSize || 20;
 
   return (
     <div className={styles.canvasPlaceholder}>
@@ -1085,9 +1031,15 @@ export default function MoleculeCanvas({
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="بوم طراحی مولکول"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
+        style={{
+          touchAction: "none",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onClick={handleClick}
       >
         <defs>
@@ -1155,21 +1107,46 @@ export default function MoleculeCanvas({
         {renderedTexts}
         {renderedAtoms}
 
-        {arrowDraftStart &&
-          arrowDraftCurrent && (
-            <line
-              x1={arrowDraftStart.x}
-              y1={arrowDraftStart.y}
-              x2={arrowDraftCurrent.x}
-              y2={arrowDraftCurrent.y}
-              stroke="var(--md-arrow-color, #10B981)"
-              strokeWidth="2.5"
-              strokeDasharray="4 4"
-              strokeLinecap="round"
-              markerEnd="url(#arrowhead)"
-              pointerEvents="none"
-            />
-          )}
+        {selectionBoxStart && selectionBoxCurrent && (
+          <rect
+            x={Math.min(
+              selectionBoxStart.x,
+              selectionBoxCurrent.x
+            )}
+            y={Math.min(
+              selectionBoxStart.y,
+              selectionBoxCurrent.y
+            )}
+            width={Math.abs(
+              selectionBoxCurrent.x -
+                selectionBoxStart.x
+            )}
+            height={Math.abs(
+              selectionBoxCurrent.y -
+                selectionBoxStart.y
+            )}
+            fill="rgba(37, 99, 235, 0.12)"
+            stroke="#2563EB"
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+            pointerEvents="none"
+          />
+        )}
+
+        {arrowDraftStart && arrowDraftCurrent && (
+          <line
+            x1={arrowDraftStart.x}
+            y1={arrowDraftStart.y}
+            x2={arrowDraftCurrent.x}
+            y2={arrowDraftCurrent.y}
+            stroke="var(--md-arrow-color, #10B981)"
+            strokeWidth="2.5"
+            strokeDasharray="4 4"
+            strokeLinecap="round"
+            markerEnd="url(#arrowhead)"
+            pointerEvents="none"
+          />
+        )}
       </svg>
 
       {document.objects.length === 0 && (
@@ -1177,14 +1154,8 @@ export default function MoleculeCanvas({
           className={styles.canvasWelcome}
           style={{ pointerEvents: "none" }}
         >
-          <div className={styles.canvasIcon}>
-            ⌬
-          </div>
-
-          <h2>
-            محیط طراحی هوشمند شیمیایی
-          </h2>
-
+          <div className={styles.canvasIcon}>⌬</div>
+          <h2>محیط طراحی هوشمند شیمیایی</h2>
           <p>
             عنصر، پیوند، فلش یا ابزار مورد نظر را
             از نوار کناری انتخاب کنید.

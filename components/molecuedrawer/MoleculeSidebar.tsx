@@ -45,7 +45,6 @@ const GENERAL_TOOLS: ReadonlyArray<{
   icon: string;
 }> = [
   { id: "select", label: "انتخاب", icon: "⌁" },
-  { id: "pan", label: "جابه‌جایی بوم", icon: "✋" },
   { id: "brush", label: "قلم‌مو", icon: "🖌️" },
   { id: "add-text", label: "متن / برچسب", icon: "🔤" },
 ];
