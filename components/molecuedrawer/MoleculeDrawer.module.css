@@ -1307,9 +1307,118 @@
   font-size: 13px;
   font-weight: 600;
 }
-/* در فایل CSS مربوطه یا کلاس Tailwind */
-.canvas-container {
-  touch-action: none; /* جلوگیری کامل از اسکرول و زوم پیش‌فرض لمسی */
-  user-select: none;
-  -webkit-user-select: none;
+/* ==========================================================================
+   Mobile & Touch CSS خود اضافه (Paste) کنید:
+```css
+/* ==========================================================================
+   Mobile & Touch Responsiveness for Compact Text Menu & Panels
+   ========================================================================== */
+
+@media (max-width: 760px) {
+  .compactTextMenu {
+position: fixed;
+bottom: 20px;
+left: 50% !important;
+top: auto !important;
+transform: translateX(-50%) !important;
+max-width: calc(100vw - 24px);
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
+z-index: 999;
+box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+backdrop-filter: blur(8px);
+background: color-mix(in srgb, var(--md-surface-elevated, #ffffff) 92%, transparent);
+padding: 6px 12px;
+  }
+
+  .compactTextMenu::-webkit-scrollbar {
+display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .compactTextMenu {
+height: 38px;
+gap: 4px;
+padding: 4px 8px;
+bottom: 12px;
+  }
+
+  .compactColorButton {
+width: 20px;
+height: 20px;
+outline-width: 1.5px;
+  }
+
+  .compactSizeButton {
+width: 26px;
+height: 26px;
+font-size: 13px;
+  }
+
+  .compactSizeValue {
+min-width: 24px;
+font-size: 11px;
+  }
+
+  /* تنظیم دقیق‌تر ابعاد بوم روی صفحه‌های بسیار کوچک */
+  .canvasPlaceholder {
+min-height: 55vh;
+  }
+}
+/* ==========================================================================
+   Tablet Mode (769px to 1024px) - حالت تبلت
+   ========================================================================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* ارتفاع متناسب با صفحه تبلت */
+  .editorLayout {
+    height: calc(100vh - 120px);
+  }
+
+  /* نوار ابزار متناسب با لمس تبلت */
+  .toolbar {
+    padding: 8px 12px;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  .toolButton {
+    min-width: 50px;
+    min-height: 48px; /* ابعاد استاندارد دکمه‌های لمسی تبلت */
+    padding: 6px;
+  }
+
+  /* سایدبار در تبلت؛ نه خیلی عریض نه خیلی باریک */
+  .sidebar,
+  .leftSidebar {
+    width: 220px;
+    min-width: 200px;
+  }
+
+  .elementGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .elementButton {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  /* منوی شناور متن در تبلت */
+  .compactTextMenu {
+    padding: 6px 14px;
+    gap: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .compactColorButton {
+    width: 24px;
+    height: 24px;
+  }
+
+  .compactSizeButton {
+    width: 32px;
+    height: 32px;
+  }
 }
